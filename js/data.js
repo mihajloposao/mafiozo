@@ -10,6 +10,44 @@ const LAST = ['Russo', 'Marino', 'Costa', 'Moretti', 'Novak', 'Keane', 'Volkov',
 const NICKS = ['Knuckles', 'Two Times', 'The Ox', 'Slick', 'Fingers', 'Saint', 'Little Nicky', 'The Weasel', 'Ice', 'Smiles', 'Big Lou', 'Ghost'];
 const CREWS = ['the Kestrel Boys', 'the Southside Vipers', 'the Quay Rats', 'the Carrow Street Crew', 'the Neon Saints'];
 const FAMILIES = ['Moretti', 'Volkov', 'Delacroix', 'Castellano'];
+
+// What the street says about each family, and the event (`scene`) that tests newcomers.
+// Families without a scene are not open yet.
+const FAMILY_INFO = {
+  Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.' },
+  Volkov: { rumor: 'With the Russians, only your fists talk.', scene: 'volkov' },
+  Delacroix: { rumor: 'The Delacroix have no patience for fools.' },
+  Castellano: { rumor: 'With the Castellanos, everything has a price.' },
+};
+const FAM_RANKS = ['Associate', 'Soldier', 'Capo', 'Underboss', 'Don'];
+
+// The Volkov test is a ring fight. Venue and opponent change every time.
+const VOLKOV_VENUES = [
+  'The Volkovs run the Iron Bear, a boxing gym under the Saltmarsh fish market.',
+  'The Volkovs hold fights in a cage inside a cold-storage warehouse at Old Quay.',
+  'Tonight the Volkovs fight in the cargo hold of a freighter that sails at dawn.',
+  'The Volkovs rent out a closed bathhouse on Crown Hill for fight night.',
+];
+const VOLKOV_FIGHTERS = [
+  { name: 'Dmitri the Anvil', note: 'Hits like a truck. Moves like one too.', hp: 70, pow: 18, spd: 0.9, mix: { punch: 3, block: 1, grapple: 1 } },
+  { name: 'Yuri the Fox', note: 'Fast hands. Hard to time.', hp: 55, pow: 13, spd: 1.6, mix: { punch: 1, block: 1, grapple: 1 } },
+  { name: 'Old Sasha', note: 'Covers up and waits for your mistake.', hp: 60, pow: 14, spd: 1.1, mix: { punch: 1, block: 3, grapple: 1 } },
+  { name: 'Bogdan', note: 'A wrestler. Wants you on the floor.', hp: 75, pow: 15, spd: 1.2, mix: { punch: 1, block: 1, grapple: 3 } },
+];
+const VOLKOV_CHAMP = { name: 'Viktor the Bear', note: 'Nobody has lasted three rounds with the champion this year.', hp: 100, pow: 22, spd: 1.4, mix: { punch: 2, block: 1, grapple: 2 } };
+
+// Win and you are in. Lose after hurting them badly and you may still be in. Run and you are a joke.
+function volkovFight(p, foe, champ) {
+  p.done.seek = true;
+  return brawl(foe, foe.name,
+    () => joinFamily('Volkov', champ
+      ? `You put ${foe.name} on the floor. The room goes silent, then the vodka comes out.`
+      : `You beat ${foe.name}. The lieutenant nods once. "Tomorrow you work for us."`, champ ? { respect: rnd(10, 15) } : {}),
+    f => f.them <= foe.hp / 2
+      ? joinFamily('Volkov', `${foe.name} won, but you kept getting up. "This one has heart," the lieutenant says.`)
+      : bad(`${foe.name} knocked you out cold. You woke up in the alley out back.`, { respect: -2 }, 'Died in a Volkov fight ring'),
+    () => bad('You ran from a Volkov fight. They will be laughing about it all year.', { respect: -4 }));
+}
 const COPS = ['Harlow', 'Briggs', 'Okafor', 'Reyes', 'Kowalski'];
 const PARENTS = [
   'Your father fixes boats at the Old Quay. Your mother works nights at a diner.',
@@ -116,9 +154,17 @@ const JOBS = [
 
 // Random events. Each year rolls up to two. `inside` events happen only in prison,
 // `anywhere` events in both; the rest only on the outside. `street` events can also
-// come from hanging on the corner. Context `c`: first, last, full, n (with nickname),
+// come from hanging on the corner. `scene` events only run when you start them (see FAMILY_INFO). Context `c`: first, last, full, n (with nickname),
 // crew, rival, fam, cop, plus whatever `ctx` adds. Write NPC lines without pronouns.
 const EVENTS = [
+  { id: 'volkov', title: 'The Volkov Test', scene: true, when: p => !p.fam,
+    ctx: () => ({ venue: pick(VOLKOV_VENUES), foe: pick(VOLKOV_FIGHTERS) }),
+    text: (p, c) => `${c.venue} A Volkov lieutenant looks you over. "You want in? Here, you fight. Tonight it is ${c.foe.name}." ${c.foe.note}`,
+    choices: [
+      { label: 'Step into the ring', run: (p, c) => volkovFight(p, c.foe, false) },
+      { label: 'Ask for their champion', run: p => volkovFight(p, VOLKOV_CHAMP, true) },
+      { label: 'Walk away', run: () => meh('Not tonight. The Volkovs are not going anywhere.') },
+    ] },
   { id: 'kid', title: 'Growing Up', w: 1.5, when: p => p.age >= 2 && p.age <= 6,
     auto: () => pick([
       meh('You stole a candy bar from the corner shop. Nobody noticed.'),

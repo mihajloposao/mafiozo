@@ -100,6 +100,8 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; text-tran
 .job .row { margin-top: 12px; }
 .job .row > button { padding: 10px; }
 .hint { margin: 0 0 12px; color: var(--muted); }
+.sub { margin: 18px 0 8px; font-size: 15px; letter-spacing: .14em; color: var(--brass); }
+.item.seek { border-color: var(--brass); }
 .empty { margin: 0; padding: 24px 0; color: var(--muted); text-align: center; }
 .job { margin-bottom: 12px; padding: 14px; border: 1px solid var(--brass); border-radius: 8px; }
 .job h3 { margin: 4px 0; font-size: 24px; }

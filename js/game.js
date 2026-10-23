@@ -21,7 +21,7 @@ const ok = (text, fx = {}, cause) => ({ text, fx, cause, tone: 'good' });
 const bad = (text, fx = {}, cause) => ({ text, fx, cause, tone: 'bad' });
 const meh = (text, fx = {}, cause) => ({ text, fx, cause, tone: '' });
 
-const rank = p => RANKS.filter(([min]) => p.respect >= min).pop()[1];
+const rank = p => (p.fam ? `${FAM_RANKS[p.fam.rank]}, ${p.fam.name} family` : RANKS.filter(([min]) => p.respect >= min).pop()[1]);
 const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >= 0.25 ? 'High risk' : 'Suicide mission');
 
 // ---------- the life ----------
@@ -128,6 +128,22 @@ function escapePrison() {
   return ok('You rode out in a laundry truck. Free, and the most wanted face in Velmora.', { respect: rnd(10, 15) });
 }
 
+// ---------- families ----------
+
+function joinFamily(name, text, fx = {}) {
+  P.fam = { name, rank: 0 };
+  return ok(`${text} You are now an Associate of the ${name} family.`, { respect: 5, ...fx });
+}
+
+// Starts the family's test scene right away.
+function seekFamily(name) {
+  closeSheet();
+  const e = EVENTS.find(x => x.id === FAMILY_INFO[name].scene);
+  P.pending.unshift({ id: e.id, c: makeCtx(e) });
+  save();
+  nextEvent();
+}
+
 // ---------- work ----------
 
 function applyJob(j) {
@@ -186,7 +202,7 @@ const eligible = e => (P.prison ? e.inside || e.anywhere : !e.inside) && e.when(
 
 function queueEvent(tag, prob = 1) {
   if (!chance(prob)) return;
-  const pool = EVENTS.filter(e => (!tag || e.tag === tag) && !(e.once && P.seen[e.id]) && !P.pending.some(x => x.id === e.id) && eligible(e));
+  const pool = EVENTS.filter(e => !e.scene && (!tag || e.tag === tag) && !(e.once && P.seen[e.id]) && !P.pending.some(x => x.id === e.id) && eligible(e));
   if (!pool.length) return;
   let roll = Math.random() * pool.reduce((sum, e) => sum + (e.w || 1), 0);
   const e = pool.find(x => (roll -= x.w || 1) < 0) || pool[0];
@@ -277,7 +293,8 @@ const LOSE_TEXT = { punch: 'They caught you coming in.', grapple: 'They got past
 const cap = s => s[0].toUpperCase() + s.slice(1);
 let F = null; // the fight in progress (not saved)
 
-const brawl = (foe, name, win, lose, flee) => ({ fight: { ...FOES[foe], name }, win, lose, flee });
+// `foe` is a key of FOES or a fighter object; win/lose/flee get the final fight state.
+const brawl = (foe, name, win, lose, flee) => ({ fight: { ...(typeof foe === 'string' ? FOES[foe] : foe), name }, win, lose, flee });
 
 function startFight(r, title) {
   const you = 40 + Math.round(P.health * 0.6);
@@ -350,7 +367,7 @@ function flee() {
 }
 
 function endFight(kind) {
-  const r = F[kind] ? F[kind]() : meh('You ran. Your pride did not make it.', { respect: -2 });
+  const r = F[kind] ? F[kind](F) : meh('You ran. Your pride did not make it.', { respect: -2 });
   r.fx = { ...r.fx, health: (r.fx.health || 0) - Math.round(F.taken * 0.35) };
   const title = F.title;
   F = null;
@@ -389,10 +406,19 @@ const SHEETS = {
   jobs() {
     return ['Jobs', list(JOBS.map(j => item(`hire:${j.id}`, j.title, `${cash(j.salary)} a year · ${needs(j)}`, '', P.age < j.minAge && `Age ${j.minAge}+`)))];
   },
+  families() {
+    return ['Families', `<p class="hint">One try a year. Here is what the street says:</p>` + list(FAMILIES.map(name => {
+      const open = FAMILY_INFO[name].scene;
+      return `<button class="item" data-seek="${name}"${open ? '' : ' disabled'}><span class="nm">The ${name} family</span><span class="ds">${esc(FAMILY_INFO[name].rumor)}</span>${open ? '' : '<span class="mt">Coming soon</span>'}</button>`;
+    }))];
+  },
   crime() {
     if (P.prison) return prisonList();
     if (P.age < 10) return ['Crime', msg('Too young for a life of crime. For now.')];
-    return ['Crime', list(CRIMES.map(c => {
+    const seek = !P.fam && P.age >= 16
+      ? `<div class="list"><button class="item seek" data-sheet="families"${P.done.seek ? ' disabled' : ''}><span class="nm">Seek Out a Family</span><span class="ds">Try to get in with one of the four families.</span>${P.done.seek ? '<span class="mt">Tried this year</span>' : ''}</button></div><h3 class="sub">Street crimes</h3>`
+      : '';
+    return ['Crime', seek + list(CRIMES.map(c => {
       const lock = P.age < c.minAge ? `Age ${c.minAge}+` : P.respect < (c.minRespect || 0) ? `Respect ${c.minRespect}+` : '';
       return item(`crime:${c.id}`, c.name, '', `${riskLabel(odds(c))} · ${cash(c.reward[0])}–${cash(c.reward[1])}`, lock);
     }))];
@@ -400,12 +426,12 @@ const SHEETS = {
   life() {
     const rows = [
       ['Born', `${P.born} in ${P.district}`], ['Rank', rank(P)], ['Crew', P.flags.crew || 'None'],
-      ...(P.flags.family ? [['Contacts', `The ${P.flags.family} family`]] : []),
+      ...(P.fam ? [['Family', `${P.fam.name} · ${FAM_RANKS[P.fam.rank]}`]] : P.flags.family ? [['Contacts', `The ${P.flags.family} family`]] : []),
       ['Crimes committed', P.tally.crimes], ['Arrests', P.tally.arrests], ['Years inside', P.tally.served],
     ];
     return ['Profile', facts(rows) +
       `<div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.3</p>`];
+      `<p class="ver">Mafiozo 0.4</p>`];
   },
 };
 
@@ -520,6 +546,7 @@ document.addEventListener('click', e => {
   if (d.sheet) openSheet(d.sheet);
   else if (d.act) perform(...d.act.split(':'));
   else if (d.move) strike(d.move);
+  else if (d.seek) seekFamily(d.seek);
   else if ('choice' in d) choose(+d.choice);
   else if ('close' in d) closeSheet();
   else if (d.do) DO[d.do]();
