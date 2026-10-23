@@ -19,9 +19,12 @@ const path = require('path');
     await page.click('button[type=submit]');
     for (let step = 0; step < 600 && !(await page.$('.dead')); step++) {
       if (await clickAny('.overlay.modal:not([hidden]) button')) continue;
-      if (Math.random() < 0.5) {
-        await page.click(`[data-sheet=${['activities', 'crime', 'work'][step % 3]}]`);
+      if (await page.$('.overlay.sheet:not([hidden])')) {
         if (!(await clickAny('.overlay.sheet:not([hidden]) .item:not([disabled])'))) await page.click('[data-close]');
+        continue;
+      }
+      if (Math.random() < 0.5) {
+        await page.click(`[data-sheet=${['activities', 'crime'][step % 2]}]`);
         continue;
       }
       if (!shot && step > 80 && process.argv[2]) { shot = true; await page.screenshot({ path: process.argv[2] }); }

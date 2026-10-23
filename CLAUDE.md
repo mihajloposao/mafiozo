@@ -14,7 +14,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - `tools/artifact.html` – shell for the claude.ai artifact build.
 
 ## Conventions
-- Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, happy, smarts, looks, respect, heat.
+- Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, str, smarts, respect, heat.
+- Keep it simple: five stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one tap per fight round.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   Context `c`: first, last, full, n (name with nickname), crew, rival, fam, cop. Write NPC lines without pronouns.
