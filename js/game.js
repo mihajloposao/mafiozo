@@ -169,8 +169,9 @@ function ageUp() {
       note(`You earned ${cash(P.job.salary)} as a ${P.job.title}.`);
     }
   }
-  if (a > 45) applyFx({ health: -rnd(0, a > 65 ? 5 : 3), looks: -rnd(0, 2) });
-  applyFx({ happy: rnd(-3, 3), heat: -rnd(4, 9) });
+  // Health tracks injuries, not illness: wounds heal a little every year.
+  if (a > 45) applyFx({ looks: -rnd(0, 2) });
+  applyFx({ health: rnd(2, 5), happy: rnd(-3, 3), heat: -rnd(4, 9) });
   if (P.health <= 0) die('Your body gave out');
   else if (a > 60 && chance(((a - 60) ** 2 / 1600) * (1.6 - P.health / 100))) die(pick(['Heart attack', 'Stroke', 'Old age']));
   if (P.alive) {

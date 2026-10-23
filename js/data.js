@@ -65,7 +65,7 @@ const ACTIVITIES = [
         ? bad('A drunk swung at you outside the club. You swung back.', { money: spent, health: -rnd(3, 8), respect: rnd(1, 3) })
         : ok('You danced until sunrise at the Velvet Room.', { money: spent, happy: rnd(5, 10) });
     } },
-  { id: 'doctor', name: 'See a Doctor', desc: "St. Brigid's Clinic. $200 a visit, free for kids.", minAge: 0,
+  { id: 'doctor', name: 'See a Doctor', desc: "St. Brigid's Clinic stitches up wounds. $200 a visit, free for kids.", minAge: 0,
     run: p => {
       const fee = p.age < 18 ? 0 : 200;
       return p.money < fee
@@ -239,8 +239,6 @@ const EVENTS = [
       } },
       { label: 'Turn it down', run: () => meh('"Honest work isn\'t for everybody," you tell your old friend.') },
     ] },
-  { id: 'flu', title: 'Sick', anywhere: true, w: 0.8, when: () => true,
-    auto: () => bad('You caught a nasty flu and spent two weeks in bed.', { health: -rnd(3, 8), happy: -2 }, 'Complications from the flu') },
   { id: 'crash', title: 'Car Crash', w: 0.4, when: p => p.age >= 16,
     auto: () => bad('A drunk driver T-boned you on the Harbor Expressway.', { health: -rnd(6, 18) }, 'Killed in a car crash') },
   { id: 'scratch', title: 'Lucky Ticket', w: 0.3, when: p => p.age >= 18,
