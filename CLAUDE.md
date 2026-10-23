@@ -30,6 +30,12 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 
 ## Roadmap
 1. Phase 1 (done): life loop, stats, crimes, heat, prison, jobs, ~20 events, death, save.
-2. Phase 2: mafia hierarchy (associate, soldier, capo, consigliere, don), family members, relationships, rival families.
+2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
+   a. Joining a family: on purpose ("Seek out a family" in Crime, acceptance depends on respect and what that family values)
+      or by chance (an offer after something memorable; accept, refuse or stall; refusing has no penalty but the family remembers).
+      Ranks associate, soldier, capo, underboss, don; trust meter with the boss; family jobs (cut to the boss); promotion events.
+   b. Founding your own family: name a crew, recruit, take Velmora districts one by one (crew, gang, family); existing families see a threat.
+   c. Conflicts and the road to Don for both paths: succession or coup, DA deal to testify, loyalty tests, family wars.
+   Later: relationships (family members, partner, heirs, crew friends).
 3. Phase 3: businesses, property, money laundering, courts and lawyers.
 4. Phase 4: art, sound, balance, store release (Capacitor).
