@@ -1,5 +1,5 @@
 // Mafiozo – game content. Helpers come from game.js: rnd, chance, pick, cash,
-// ok/bad/meh (outcomes), arrest, extend, escapePrison, queueEvent.
+// ok/bad/meh (outcomes), brawl (starts a fight), arrest, extend, escapePrison, queueEvent.
 // Effect keys: money, health, happy, smarts, looks, respect, heat.
 
 const CITY = 'Velmora City';
@@ -20,6 +20,15 @@ const PARENTS = [
 
 // Respect titles, lowest first.
 const RANKS = [[0, 'Nobody'], [10, 'Street Rat'], [25, 'Hustler'], [45, 'Known Face'], [65, 'Feared'], [85, 'Legend']];
+
+// Fight opponents: fight points, hit power, needle speed (sweeps per second) and how often they pick each move.
+const FOES = {
+  kid: { hp: 40, pow: 7, spd: 0.8, mix: { punch: 2, block: 1, grapple: 1 } },
+  drunk: { hp: 45, pow: 9, spd: 0.9, mix: { punch: 3, block: 0.5, grapple: 1 } },
+  thug: { hp: 70, pow: 13, spd: 1.1, mix: { punch: 1, block: 1, grapple: 1 } },
+  gang: { hp: 95, pow: 15, spd: 1.2, mix: { punch: 2, block: 1, grapple: 2 } },
+  brute: { hp: 110, pow: 19, spd: 1.3, mix: { punch: 3, block: 1, grapple: 1 } },
+};
 
 // Crimes: base success chance plus reward, respect, heat and sentence ranges.
 // Real odds also depend on smarts, respect, heat, your crew and lockpicking (see odds() in game.js).
@@ -49,8 +58,8 @@ const CRIMES = [
 
 // Once a year each, while free.
 const ACTIVITIES = [
-  { id: 'gym', name: 'Gym', desc: 'Iron Lung Boxing Club. Get in shape.', minAge: 12,
-    run: () => ok('You trained hard at the Iron Lung all year.', { health: rnd(2, 5), looks: rnd(1, 3), happy: rnd(0, 3) }) },
+  { id: 'gym', name: 'Gym', desc: 'Iron Lung Boxing Club. Builds strength for fights.', minAge: 12,
+    run: () => ok('You trained hard at the Iron Lung all year.', { str: rnd(3, 6), health: rnd(2, 5), looks: rnd(1, 3), happy: rnd(0, 3) }) },
   { id: 'library', name: 'Library', desc: 'Read up. Smart crooks live longer.', minAge: 6,
     run: () => ok('You spent long nights at the public library.', { smarts: rnd(2, 5), happy: rnd(-1, 2) }) },
   { id: 'corner', name: 'Hang on the Corner', desc: "See who's who on your block. Trouble finds you here.", minAge: 12,
@@ -61,8 +70,11 @@ const ACTIVITIES = [
   { id: 'night', name: 'Night Out', desc: 'The Velvet Room, the Strip, wherever the night goes.', minAge: 16,
     run: p => {
       const spent = -Math.min(p.money, rnd(80, 400));
-      return chance(0.15)
-        ? bad('A drunk swung at you outside the club. You swung back.', { money: spent, health: -rnd(3, 8), respect: rnd(1, 3) })
+      return chance(0.2)
+        ? brawl('drunk', 'the drunk',
+          () => ok('A drunk swung at you outside the club. You put them on the curb.', { money: spent, respect: rnd(1, 3) }),
+          () => bad('A drunk swung at you outside the club and won. Embarrassing.', { money: spent, happy: -4 }),
+          () => meh('A drunk swung at you outside the club. You jumped in a cab.', { money: spent }))
         : ok('You danced until sunrise at the Velvet Room.', { money: spent, happy: rnd(5, 10) });
     } },
   { id: 'doctor', name: 'See a Doctor', desc: "St. Brigid's Clinic stitches up wounds. $200 a visit, free for kids.", minAge: 0,
@@ -79,15 +91,15 @@ const ACTIVITIES = [
 // Once a year each, while locked up.
 const PRISON_ACTIONS = [
   { id: 'yard', name: 'Hit the Weights', desc: 'Get bigger in the yard.',
-    run: () => ok('You pushed iron every day this year.', { health: rnd(3, 6), looks: rnd(1, 3), respect: rnd(1, 2) }) },
+    run: () => ok('You pushed iron every day this year.', { str: rnd(3, 6), health: rnd(3, 6), looks: rnd(1, 3), respect: rnd(1, 2) }) },
   { id: 'books', name: 'Prison Library', desc: 'Read whatever the cart brings.',
     run: () => ok('You read everything on the book cart.', { smarts: rnd(3, 6), happy: rnd(0, 2) }) },
   { id: 'fight', name: 'Pick a Fight', desc: 'Earn your place. Or a stretcher.',
-    run: p => chance(0.45 + p.health / 300)
-      ? ok('You flattened a loudmouth from C-Block. Nobody looks at you wrong now.', { respect: rnd(5, 10) })
-      : chance(0.3)
-        ? extend(1, bad('You lost, and the guards wrote you up.', { health: -rnd(8, 15) }, 'Killed in a prison fight'))
-        : bad('You lost. Badly.', { health: -rnd(10, 20) }, 'Killed in a prison fight') },
+    run: () => brawl('thug', 'the loudmouth',
+      () => ok('You flattened a loudmouth from C-Block. Nobody looks at you wrong now.', { respect: rnd(5, 10) }),
+      () => chance(0.3)
+        ? extend(1, bad('You lost, and the guards wrote you up.', {}, 'Killed in a prison fight'))
+        : bad('You lost. Badly.', {}, 'Killed in a prison fight')) },
   { id: 'escape', name: 'Attempt Escape', desc: 'Laundry truck, 4:15 a.m. Long odds.',
     run: p => chance(0.12 + p.smarts / 500)
       ? escapePrison()
@@ -121,9 +133,9 @@ const EVENTS = [
   { id: 'bully', title: 'Lunch Money', when: p => p.age >= 7 && p.age <= 13,
     text: (p, c) => `${c.n} has been shaking you down for lunch money all week.`,
     choices: [
-      { label: 'Fight back', run: (p, c) => chance(0.45 + p.health / 250)
-        ? ok(`You knocked ${c.first} flat in the hallway. Word gets around.`, { respect: rnd(4, 7), happy: rnd(3, 6) })
-        : bad(`${c.first} beat you up in front of the whole school.`, { health: -rnd(4, 8), happy: -rnd(4, 8) }) },
+      { label: 'Fight back', run: (p, c) => brawl('kid', c.first,
+        () => ok(`You knocked ${c.first} flat in the hallway. Word gets around.`, { respect: rnd(4, 7), happy: rnd(3, 6) }),
+        () => bad(`${c.first} beat you up in front of the whole school.`, { happy: -rnd(4, 8) })) },
       { label: 'Tell a teacher', run: () => meh('The teacher handled it. Some kids call you a snitch now.', { smarts: 2, respect: -3 }) },
       { label: 'Pay up', run: p => meh('You hand over your money. Again.', { money: -Math.min(p.money, 20), happy: -4 }) },
     ] },
@@ -158,9 +170,9 @@ const EVENTS = [
   { id: 'jumped', title: 'Ambush', tag: 'street', when: p => p.age >= 15 && p.respect >= 5,
     text: (p, c) => `Three guys from ${c.rival} jump you in an alley off Carrow Street.`,
     choices: [
-      { label: 'Fight', run: p => chance(0.3 + p.health / 250 + p.respect / 400)
-        ? ok('You left two of them on the pavement. The third ran.', { respect: rnd(6, 9), health: -rnd(2, 6) })
-        : bad('They stomped you and left you bleeding.', { health: -rnd(15, 25), respect: -2 }, 'Beaten to death in an alley') },
+      { label: 'Fight', run: () => brawl('gang', 'the biggest one',
+        () => ok('You put the biggest one on the pavement. The other two ran.', { respect: rnd(6, 9) }),
+        () => bad('They stomped you and left you bleeding.', { respect: -2 }, 'Beaten to death in an alley')) },
       { label: 'Run', run: p => chance(0.5 + p.health / 300)
         ? meh('You got away. Your pride did not.', { respect: -2 })
         : bad('They caught you anyway.', { health: -rnd(8, 14) }, 'Beaten to death in an alley') },
@@ -222,9 +234,9 @@ const EVENTS = [
   { id: 'chowline', title: 'Chow Line', inside: true, w: 2, when: () => true,
     text: (p, c) => `A huge inmate called ${c.n} shoves your tray to the floor.`,
     choices: [
-      { label: 'Stand your ground', run: p => chance(0.38 + p.health / 250)
-        ? ok('You put the big one down. The whole block saw it.', { respect: rnd(8, 12) })
-        : bad('You got two broken ribs for your trouble.', { health: -rnd(12, 20) }, 'Killed in a prison fight') },
+      { label: 'Stand your ground', run: (p, c) => brawl('brute', c.first,
+        () => ok(`You put ${c.first} down. The whole block saw it.`, { respect: rnd(8, 12) }),
+        () => bad('You got two broken ribs for your trouble.', {}, 'Killed in a prison fight')) },
       { label: 'Back down', run: () => bad('You picked your food off the floor. Everyone saw.', { respect: -6, happy: -5 }) },
       { label: 'Pay protection ($200)', run: p => p.money >= 200
         ? meh('Your commissary money buys you some peace.', { money: -200, respect: -2 })

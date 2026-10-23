@@ -2,7 +2,7 @@
 
 const SAVE_KEY = 'mafiozo.save.v1';
 const STATS = [['health', 'Health'], ['happy', 'Happiness'], ['smarts', 'Smarts'], ['looks', 'Looks'], ['respect', 'Respect'], ['heat', 'Heat']];
-const LABEL = Object.fromEntries(STATS);
+const LABEL = { ...Object.fromEntries(STATS), str: 'Strength' };
 let P = null; // the life being played, saved after every change
 
 // ---------- helpers (data.js uses these too) ----------
@@ -30,7 +30,7 @@ const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >=
 function newLife(first, last, gender) {
   P = {
     first, last, gender, age: 0, born: new Date().getFullYear(), district: pick(DISTRICTS),
-    money: 0, health: rnd(75, 100), happy: rnd(60, 100), smarts: rnd(15, 90), looks: rnd(15, 90), respect: 0, heat: 0,
+    money: 0, str: rnd(5, 20), health: rnd(75, 100), happy: rnd(60, 100), smarts: rnd(15, 90), looks: rnd(15, 90), respect: 0, heat: 0,
     job: null, prison: 0, inmate: rnd(10000, 99999), alive: true, cause: '',
     flags: {}, seen: {}, done: {}, pending: [], tally: { crimes: 0, arrests: 0, served: 0, peak: 0 }, log: [],
   };
@@ -163,6 +163,7 @@ function ageUp() {
   } else {
     if (a === 5) note('You started school at P.S. 41.');
     if (a >= 6 && a <= 18) applyFx({ smarts: rnd(0, 3) });
+    if (a >= 10 && a <= 20) applyFx({ str: rnd(0, 2) });
     if (a === 18) note(P.smarts >= 35 ? 'You graduated from Velmora High.' : 'You dropped out of Velmora High.');
     if (P.job) {
       applyFx({ money: P.job.salary, happy: -rnd(0, 2), heat: -3 });
@@ -225,8 +226,11 @@ function showEvent(e, c) {
 function choose(i) {
   const { id, c } = P.pending.shift();
   const e = EVENTS.find(x => x.id === id);
-  resolve(e.choices[i].run(P, c), e.title);
+  play(e.choices[i].run(P, c), e.title);
 }
+
+// An outcome either resolves right away or starts a fight first.
+const play = (r, title) => (r.fight ? startFight(r, title) : resolve(r, title));
 
 function resolve(r, title) {
   const fx = applyFx(r.fx);
@@ -246,7 +250,7 @@ function perform(kind, id) {
   if (kind === 'act' || kind === 'prison') {
     const a = (kind === 'act' ? ACTIVITIES : PRISON_ACTIONS).find(x => x.id === id);
     P.done[a.id] = true;
-    return resolve(a.run(P), a.name);
+    return play(a.run(P), a.name);
   }
   if (kind === 'hire') {
     const j = JOBS.find(x => x.id === id);
@@ -261,6 +265,106 @@ function perform(kind, id) {
     P.job = null;
     return resolve(meh(`You quit your job as a ${title}.`, { happy: 2 }), 'Quit');
   }
+}
+
+// ---------- fights ----------
+// Each round: pick Punch, Block or Grapple (punch beats grapple, grapple beats block, block beats punch),
+// then stop the swinging needle in the bright zone. Timing scales damage dealt and taken.
+// Strength sets your hit power, health sets your fight points and zone size, smarts can reveal the next move.
+const MOVES = { punch: 'Punch', block: 'Block', grapple: 'Grapple' };
+const BEATS = { punch: 'grapple', grapple: 'block', block: 'punch' };
+const TELLS = { punch: 'pulls a fist back', block: 'raises both arms', grapple: 'crouches low, arms wide' };
+const WIN_TEXT = { punch: 'You caught them coming in.', grapple: 'You got past the guard and slammed them down.', block: 'You blocked and countered.' };
+const LOSE_TEXT = { punch: 'They caught you coming in.', grapple: 'They got past your guard and slammed you down.', block: 'They blocked and countered.' };
+const cap = s => s[0].toUpperCase() + s.slice(1);
+let F = null; // the fight in progress (not saved)
+
+const brawl = (foe, name, win, lose, flee) => ({ fight: { ...FOES[foe], name }, win, lose, flee });
+
+function startFight(r, title) {
+  const you = 40 + Math.round(P.health * 0.6);
+  F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: '' };
+  fightMenu();
+}
+
+function fightCard(body) {
+  const bar = (label, v, max, cls) => `<div class="hp ${cls}"><span>${esc(label)}</span><b>${Math.max(0, v)}</b><i style="--v:${(Math.max(0, v) / max) * 100}%"></i></div>`;
+  return `<div class="card fight" role="dialog" aria-modal="true"><p class="kicker">Round ${F.round} · Strength ${P.str}</p><h2>${esc(F.title)}</h2>
+    <div class="hps">${bar('You', F.you, F.youMax, 'me')}${bar(F.foe.name, F.them, F.foe.hp, 'foe')}</div>
+    ${F.last ? `<p class="flog">${esc(F.last)}</p>` : ''}${body}</div>`;
+}
+
+function fightMenu() {
+  const mix = F.foe.mix;
+  let roll = Math.random() * Object.values(mix).reduce((a, b) => a + b, 0);
+  F.next = Object.keys(mix).find(k => (roll -= mix[k]) < 0) || 'punch';
+  const tell = chance(P.smarts / 130) ? `${cap(F.foe.name)} ${TELLS[F.next]}.` : `You can't read ${F.foe.name}.`;
+  showModal(fightCard(`<p class="tell">${esc(tell)}</p>
+    <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}</button>`).join('')}</div>
+    <button class="ghost flee" data-do="flee">Run for it</button>`));
+}
+
+const needlePos = () => { const ph = (((performance.now() - F.t0) / 1000) * F.foe.spd) % 2; return (ph < 1 ? ph : 2 - ph) * 100; };
+
+function pickMove(m) {
+  const w = 14 + Math.round(P.health / 10);
+  F.move = m;
+  F.zone = { x: rnd(5, 95 - w), w };
+  F.t0 = performance.now();
+  F.timing = true;
+  showModal(fightCard(`<p class="tell">Stop the needle in the bright zone.</p>
+    <div class="meter"><i style="left:${F.zone.x}%;width:${w}%"></i><b id="needle"></b></div>
+    <button class="primary strike" data-do="strike">${MOVES[m]}!</button>`));
+  const sweep = () => {
+    if (!F || !F.timing) return;
+    $('#needle').style.left = `${needlePos()}%`;
+    requestAnimationFrame(sweep);
+  };
+  requestAnimationFrame(sweep);
+}
+
+function strike() {
+  const pos = needlePos(), { x, w } = F.zone;
+  F.timing = false;
+  const [q, label] = pos >= x && pos <= x + w ? [1.5, 'Perfect!'] : pos >= x - 10 && pos <= x + w + 10 ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
+  const mine = Math.round((8 + P.str / 5) * q), theirs = Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * (2 - q));
+  const me = F.move, them = F.next;
+  let dealt = 0, took = 0, text;
+  if (me === them) {
+    if (me === 'block') text = 'You both kept your guard up. Nothing landed.';
+    else { dealt = Math.round(mine / 2); took = Math.round(theirs / 2); text = 'You traded blows.'; }
+  } else if (BEATS[me] === them) {
+    dealt = me === 'block' ? Math.round(mine * 0.7) : mine;
+    text = WIN_TEXT[me];
+  } else {
+    took = them === 'block' ? Math.round(theirs * 0.7) : theirs;
+    text = LOSE_TEXT[them];
+  }
+  hitRound(dealt, took, `${label} ${text}`);
+}
+
+function hitRound(dealt, took, text) {
+  F.them -= dealt;
+  F.you -= took;
+  F.taken += took;
+  F.last = `${text} (You −${took} · ${cap(F.foe.name)} −${dealt})`;
+  if (F.them <= 0) return endFight('win');
+  if (F.you <= 0) return endFight('lose');
+  F.round++;
+  fightMenu();
+}
+
+function flee() {
+  if (chance(0.35 + P.health / 300)) return endFight('flee');
+  hitRound(0, rnd(F.foe.pow - 3, F.foe.pow + 3), 'You tried to run. They dragged you back.');
+}
+
+function endFight(kind) {
+  const r = F[kind] ? F[kind]() : meh('You ran. Your pride did not make it.', { respect: -2 });
+  r.fx = { ...r.fx, health: (r.fx.health || 0) - Math.round(F.taken * 0.35) };
+  const title = F.title;
+  F = null;
+  resolve(r, title);
 }
 
 // ---------- screens ----------
@@ -304,13 +408,13 @@ const SHEETS = {
   },
   life() {
     const rows = [
-      ['Born', `${P.born} in ${P.district}`], ['Rank', rank(P)], ['Crew', P.flags.crew || 'None'],
+      ['Born', `${P.born} in ${P.district}`], ['Rank', rank(P)], ['Strength', P.str], ['Crew', P.flags.crew || 'None'],
       ...(P.flags.family ? [['Contacts', `The ${P.flags.family} family`]] : []),
       ['Crimes committed', P.tally.crimes], ['Arrests', P.tally.arrests], ['Years inside', P.tally.served],
     ];
     return ['Life', facts(rows) +
       `<div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.1 · Phase 1 prototype</p>`];
+      `<p class="ver">Mafiozo 0.2 · Phase 1 prototype</p>`];
   },
 };
 
@@ -408,6 +512,8 @@ const DO = {
   age: ageUp,
   next() { hideModal(); if (P.alive) nextEvent(); else render(); },
   randomize,
+  strike,
+  flee,
   askRestart() {
     $('#restart').innerHTML = `<p class="hint">End ${esc(P.first)}'s life for good?</p><div class="row"><button class="danger" data-do="restart">Yes, start over</button><button class="ghost" data-close>Keep playing</button></div>`;
   },
@@ -427,6 +533,7 @@ document.addEventListener('click', e => {
   const d = b.dataset;
   if (d.sheet) openSheet(d.sheet);
   else if (d.act) perform(...d.act.split(':'));
+  else if (d.move) pickMove(d.move);
   else if ('choice' in d) choose(+d.choice);
   else if ('close' in d) closeSheet();
   else if (d.do) DO[d.do]();
@@ -442,6 +549,7 @@ document.addEventListener('submit', e => {
 // Boot. In the Claude app viewer, keep the life across live updates of the page.
 function start(data) {
   P = (data && data.P) || load();
+  if (P && P.str == null) P.str = 20; // saves from before strength existed
   render();
   if (P && P.alive) nextEvent();
 }

@@ -16,6 +16,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 ## Conventions
 - Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, happy, smarts, looks, respect, heat.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
+  A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   Context `c`: first, last, full, n (name with nickname), crew, rival, fam, cop. Write NPC lines without pronouns.
 - Save lives in localStorage under `mafiozo.save.v1`; change the key if the save shape changes incompatibly.
 
