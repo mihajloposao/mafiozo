@@ -16,7 +16,7 @@ const FAMILIES = ['Moretti', 'Volkov', 'Delacroix', 'Castellano'];
 const FAMILY_INFO = {
   Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.', scene: 'moretti' },
   Volkov: { rumor: 'With the Russians, only your fists talk.', scene: 'volkov' },
-  Delacroix: { rumor: 'The Delacroix have no patience for fools.' },
+  Delacroix: { rumor: 'The Delacroix have no patience for fools.', scene: 'delacroix' },
   Castellano: { rumor: 'With the Castellanos, everything has a price.' },
 };
 const FAM_RANKS = ['Associate', 'Soldier', 'Capo', 'Underboss', 'Don'];
@@ -85,13 +85,48 @@ const SNEAK_TEST = {
   ],
 };
 
-// Safe-cracking places for the Delacroix test: code length, and seconds before the owner is back.
-const SAFE_PLACES = [
-  { place: 'the Grand Velmora Hotel', digits: 4, time: 15 },
-  { place: 'a gallery on Rue Royale', digits: 5, time: 18 },
-  { place: 'a yacht in the marina', digits: 5, time: 16 },
-  { place: 'a jeweler on Crown Hill', digits: 6, time: 20 },
+// The Delacroix test: a safe job. Code length, seconds before the owner is back, who you could bribe,
+// and who has you if it goes wrong. The safe test room in Profile picks from these too.
+const DELACROIX_JOBS = [
+  { place: 'the Grand Velmora Hotel', digits: 4, time: 15, insider: 'the maid', caughtBy: 'police',
+    brief: 'A businessman at the Grand Velmora owes us and hides it in the safe of his suite. Bring us his bearer bonds.',
+    win: 'You laid the bonds on the white tablecloth.' },
+  { place: 'a gallery on Rue Royale', digits: 5, time: 18, insider: 'the assistant', caughtBy: 'police',
+    brief: 'We sold a painting that is, let us say, younger than it looks. The gallery owner keeps the proof in a safe. Bring it to us.',
+    win: 'The proof of the forgery went into the fireplace.' },
+  { place: 'a yacht in the marina', digits: 5, time: 16, insider: 'a deckhand', caughtBy: 'mob',
+    brief: 'A rival keeps a hard drive with our accounts in the safe of a yacht in the marina. We want it back.',
+    win: 'You handed over the hard drive. Nobody asked how.' },
+  { place: 'a jeweler on Crown Hill', digits: 6, time: 20, insider: 'the clerk', caughtBy: 'police',
+    brief: 'A jeweler on Crown Hill would like to be robbed, for the insurance. Empty the safe. He gets the payout, we get the stones.',
+    win: 'The diamonds were on their way to Antwerp by morning.' },
 ];
+const BRIBE = 1000;
+
+function delacroixJob(p, c, method) {
+  const job = DELACROIX_JOBS[c.job];
+  if (method === 'bribe' && p.money < BRIBE) return meh(`You cannot afford ${job.insider}. The Delacroix smile politely and wait.`);
+  p.done.seek = true;
+  if (method === 'bribe' && chance(0.15)) { // the insider talked
+    P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
+    return bad(`${job.insider.charAt(0).toUpperCase() + job.insider.slice(1)} took your money and sold you out. Someone was waiting by the safe.`, { money: -BRIBE });
+  }
+  return { safe: { ...job, method, end: (how, tries) => delacroixEnd(job, method, how, tries) } };
+}
+
+// First try earns the most respect, a week of watching only half. Locked or too slow leads to the `nabbed` event.
+function delacroixEnd(job, method, how, tries) {
+  const fee = method === 'bribe' ? { money: -BRIBE } : {};
+  if (how === 'open') {
+    const clean = tries === 3, respect = clean ? rnd(8, 12) : rnd(3, 6);
+    const text = clean ? `Not a single wrong digit. ${job.win}` : `It took a few tries, but ${job.win.charAt(0).toLowerCase()}${job.win.slice(1)}`;
+    return joinFamily('Delacroix', `${text}${method === 'week' ? ' "A whole week, though," Madame Delacroix sighs.' : ''}`,
+      { ...fee, respect: method === 'week' ? Math.ceil(respect / 2) : respect });
+  }
+  if (how === 'quit') return meh('You backed off before anyone saw you. Maybe next year.', fee);
+  P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
+  return bad(how === 'locked' ? 'The safe locked itself and an alarm went off.' : 'The owner walked in on you.', fee);
+}
 
 // The Moretti test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
 // `shiftMoves` how long until the next shift arrives. `caughtBy` decides who has you if it goes wrong.
@@ -259,6 +294,15 @@ const EVENTS = [
       { label: 'The back way', run: (p, c) => morettiJob(p, c, 'back') },
       { label: 'During the shift change', run: (p, c) => morettiJob(p, c, 'shift') },
       { label: 'Walk away', run: () => meh('"Come back when you have the stomach for it."') },
+    ] },
+  { id: 'delacroix', title: 'The Delacroix Test', scene: true, when: p => !p.fam,
+    ctx: () => ({ job: rnd(0, DELACROIX_JOBS.length - 1) }),
+    text: (p, c) => `Dinner at Maison Delacroix. Nobody touches the food. "We hear you are clever. Show us. ${DELACROIX_JOBS[c.job].brief}" The safe has a ${DELACROIX_JOBS[c.job].digits}-digit code. Watching for a week is safer, but the Delacroix hate waiting. ${DELACROIX_JOBS[c.job].insider.charAt(0).toUpperCase() + DELACROIX_JOBS[c.job].insider.slice(1)} could give you half the code, for a price, and might talk.`,
+    choices: [
+      { label: 'One night of watching', run: (p, c) => delacroixJob(p, c, 'night') },
+      { label: 'A week of watching', run: (p, c) => delacroixJob(p, c, 'week') },
+      { label: () => `Bribe the staff (${cash(BRIBE)})`, run: (p, c) => delacroixJob(p, c, 'bribe') },
+      { label: 'Walk away', run: () => meh('"A pity. We so rarely meet anyone interesting."') },
     ] },
   { id: 'nabbed', title: 'Caught', scene: true, when: () => true,
     text: (p, c) => (c.by === 'mob' ? 'Two of their men have you pinned against the wall.' : 'A cop has you by the collar. Backup is two minutes out.'),
