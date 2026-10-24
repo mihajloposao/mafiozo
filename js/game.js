@@ -377,8 +377,8 @@ function endFight(kind) {
 // ---------- sneaking (turn-based) ----------
 // Tap a tile next to you to step there, wait, or toss a coin. After every action the guards take their turn.
 // Guards and cameras see a cone in front of them (walls and desks block it); the dog smells the 4 tiles around it.
-// A calm guard who sees you ends it. A camera or the dog sounds the alarm instead: the guard runs at you, two steps
-// for each of yours, to where you were last seen, looks around there and gives up if you stay hidden.
+// Whoever notices you (guard, camera or dog) sounds the alarm: the guard runs at you, two steps for each of yours,
+// to where you were last seen, looks around there and gives up if you stay hidden. Only a tackle catches you.
 // Step on a guard from right behind to knock them out.
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const DIR8 = { ...DIRS, 'up-left': [-1, -1], 'up-right': [1, -1], 'down-left': [-1, 1], 'down-right': [1, 1] };
@@ -386,7 +386,7 @@ const ARROW = { up: '↑', down: '↓', left: '←', right: '→', 'up-left': '�
 const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
 const CCW = { up: 'left', left: 'down', down: 'right', right: 'up' };
 const GUARD_ICON = { cop: '👮', cam: '📷', dog: '🐕' };
-const ALARM = { cam: 'The camera spotted you. The guard is coming!', dog: 'The dog started barking. The guard is coming!' };
+const ALARM = { cop: 'The guard spotted you. Run!', cam: 'The camera spotted you. The guard is coming!', dog: 'The dog started barking. The guard is coming!' };
 const ENDING = { win: ['Clean Job', 'good'], loud: ['Got Away', 'good'], fled: ['Slipped Out', ''], caught: ['Caught', 'bad'] };
 const CONE = { cop: 3, cam: 3 }; // how many tiles deep each one sees
 const dirOf = (a, b) => (b[0] > a[0] ? 'right' : b[0] < a[0] ? 'left' : b[1] > a[1] ? 'down' : 'up');
@@ -517,25 +517,22 @@ function actGuard(g) {
   return '';
 }
 
-// Who noticed you. A calm guard ends it; a camera, the dog or a guard already on your trail keeps the chase going.
+// Anyone who notices you sends every guard running at you; the noise even wakes a guard you knocked out.
 function detect() {
   const watchers = S.guards.filter(g => !g.down && sees(g));
-  if (!watchers.length) return '';
-  if (watchers.some(g => g.type === 'cop' && !g.chase)) return 'The guard saw you.';
-  const cops = S.guards.filter(g => g.type === 'cop' && !g.down);
-  if (!cops.length) return watchers[0].type === 'dog' ? 'The dog barked until backup arrived.' : 'The camera caught you. Backup arrived.';
-  if (!chased()) say(ALARM[watchers.find(g => g.type !== 'cop').type]);
+  if (!watchers.length) return;
+  const cops = S.guards.filter(g => g.type === 'cop');
+  if (!chased()) say(ALARM[(watchers.find(g => g.type === 'cop') || watchers[0]).type]);
+  if (cops.some(c => c.down)) say('The noise woke the guard up!');
   S.loud = true;
-  for (const c of cops) { Object.assign(c, { chase: [S.x, S.y], searched: false, looks: [], wait: 0 }); planGuard(c); }
-  return '';
+  for (const c of cops) { Object.assign(c, { down: false, chase: [S.x, S.y], searched: false, looks: [], wait: 0 }); planGuard(c); }
 }
 
 function endTurn(msg) {
   S.moves++;
   if (msg) say(msg);
   for (const g of S.guards) { const why = actGuard(g); if (why) return sneakOver('caught', why); }
-  const why = detect();
-  if (why) return sneakOver('caught', why);
+  detect();
   renderSneak();
 }
 
@@ -586,8 +583,7 @@ function sneakTap(key) {
     const extra = S.cash ? ` Plus ${cash(S.cash)} for your pocket.` : '';
     return sneakOver(S.loud ? 'loud' : 'win', S.loud ? `You got out with the file, but they saw your face. ${S.moves} moves.${extra}` : `Clean job in ${S.moves} moves.${extra}`);
   }
-  const why = detect();
-  if (why) return sneakOver('caught', why);
+  detect();
   endTurn('');
 }
 
@@ -600,7 +596,7 @@ function sneakCmd(cmd) {
 }
 
 function renderSneak() {
-  const cover = {}, next = {}, route = new Set();
+  const cover = {}, next = {}, route = new Set(), readsRoutes = !!P && P.smarts >= 65;
   for (const g of S.guards) {
     for (const [x, y, dist] of sightOf(g)) {
       const c = (cover[`${x},${y}`] ||= {});
@@ -609,7 +605,7 @@ function renderSneak() {
     if (g.down || !g.plan) continue;
     if (g.plan.to) next[g.plan.to.join(',')] = g.type;
     if (g.plan.run) g.path.slice(0, 2).forEach(t => (next[t.join(',')] = 'cop')); // two steps a turn
-    if (g.type === 'cop') g.path.forEach(([x, y]) => route.add(`${x},${y}`)); // where the guard is heading
+    if (g.type === 'cop' && readsRoutes) g.path.forEach(([x, y]) => route.add(`${x},${y}`)); // only smart crooks read the route
   }
   const me = esc(P ? P.first[0] + P.last[0] : 'ME');
   let cells = '';
@@ -639,7 +635,7 @@ function renderSneak() {
     <div class="sgrid" style="--cols:${S.tiles[0].length}">${cells}</div>
     <div class="row sctl">${controls}</div>
     <div class="legend"><span><i class="k cop"></i>Guard sees</span><span><i class="k cam"></i>Camera sees</span><span><i class="k dog"></i>Dog smells</span></div>
-    <p class="rules">Walls and desks block the view. Arrows show each one's next move, dots the guard's route. If a camera or the dog notices you, the guard runs 2 steps for each of yours. Get out of sight and the guard gives up. Step on a guard from behind to knock them out.</p></div>`);
+    <p class="rules">Walls and desks block the view. Arrows show each one's next move. ${readsRoutes ? 'Your smarts let you read the guard\'s route (dots).' : 'A smarter crook could read the guard\'s whole route.'} If anyone notices you, the guard runs 2 steps for each of yours and has to catch you. Get out of sight and the guard gives up. Step on a guard from behind to knock them out.</p></div>`);
   modal.querySelector('.sctl button')?.focus();
 }
 

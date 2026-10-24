@@ -21,7 +21,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   `scene: true` events never roll at random; they run when started (Seek Out a Family uses FAMILY_INFO[name].scene).
   Families: no visible requirements, only street rumors; each test picks a random variant (venue, opponent, place).
   Sneaking minigame (turn-based grid, rooms like SNEAK_TEST in data.js): `startSneak(room)`; only a test room in Profile so far.
-  A calm guard seeing you = caught; camera or dog = alarm, guard chases 2 steps per turn, gives up if you stay hidden.
+  Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
+  the alarm wakes a knocked-out guard. Arrows (next move) always show; route dots only with smarts 65+.
   Endings: win (clean), loud (out with the target after an alarm), fled (out without it), caught.
   Context `c`: first, last, full, n (name with nickname), crew, rival, fam, cop. Write NPC lines without pronouns.
 - Save lives in localStorage under `mafiozo.save.v1`; change the key if the save shape changes incompatibly.
