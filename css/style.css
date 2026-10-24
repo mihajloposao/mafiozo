@@ -13,6 +13,8 @@
   --blood: #d64c40;
   --mint: #7cc58c;
   --cam: #5b8fd6;
+  --paper: #e9dfc4;
+  --paper-ink: #2b2418;
   --display: "Big Shoulders Display", "Arial Narrow", "Roboto Condensed", sans-serif;
   --body: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
   padding-top: env(safe-area-inset-top, 0px);
@@ -176,6 +178,25 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; text-tran
 .k.cop { background: rgb(214 76 64 / .6); }
 .k.cam { background: rgb(91 143 214 / .6); }
 .k.dog { background: rgb(202 162 76 / .6); }
+
+/* safe cracking */
+.card.safe { animation: none; }
+.card.safe h2 { font-size: 26px; margin-bottom: 6px; }
+.card.safe .tell { font-size: 14px; font-style: normal; }
+.code { display: flex; justify-content: center; gap: 8px; margin: 12px 0 4px; }
+.code span { width: 38px; height: 48px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 6px; background: var(--raise); font: 800 26px/1 var(--display); color: var(--brass); }
+.code.shake { animation: shake .35s; }
+@keyframes shake { 25% { transform: translateX(-6px); } 50% { transform: translateX(6px); } 75% { transform: translateX(-3px); } }
+.tries { margin: 0; text-align: center; color: var(--blood); letter-spacing: 4px; font-size: 13px; }
+.clock { height: 6px; margin: 8px 0 4px; border-radius: 3px; background: var(--raise); overflow: hidden; }
+.clock i { display: block; width: 100%; height: 100%; background: var(--brass); }
+.clock.low i { background: var(--blood); }
+.pad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-width: 260px; margin: 12px auto 4px; }
+.key { padding: 14px 0; border: 1px solid var(--line); border-radius: 10px; background: var(--raise); font: 700 22px/1 var(--body); transition: background .08s; }
+.key.ok { color: var(--mint); }
+.key.lit { background: var(--brass); border-color: var(--brass); color: var(--ink); }
+.note { max-width: 240px; margin: 10px auto 0; padding: 8px 12px; background: var(--paper); color: var(--paper-ink); font: 700 22px/1.2 "Courier New", monospace; text-align: center; transform: rotate(-1.5deg); }
+.note small { display: block; font: 600 12px/1.4 var(--body); text-transform: uppercase; letter-spacing: .1em; }
 
 /* start and death screens */
 .start, .dead { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; overflow-y: auto; padding-block: 24px; }

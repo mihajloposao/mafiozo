@@ -20,7 +20,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   `scene: true` events never roll at random; they run when started (Seek Out a Family uses FAMILY_INFO[name].scene).
   Families: no visible requirements, only street rumors; each test picks a random variant (venue, opponent, place).
-  Sneaking minigame (turn-based grid, rooms like SNEAK_TEST in data.js): `startSneak(room)`; only a test room in Profile so far.
+  Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the Moretti test, test room in Profile.
+  Safe minigame (memory keypad, SAFE_PLACES): `startSafe(job, title)`; only a test room in Profile so far (planned for the Delacroix test).
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
   the alarm wakes a knocked-out guard. Arrows (next move) always show; route dots only with smarts 65+.
   Endings: win (clean), loud (out with the target after an alarm), fled (out without it), caught.

@@ -85,6 +85,14 @@ const SNEAK_TEST = {
   ],
 };
 
+// Safe-cracking places for the Delacroix test: code length, and seconds before the owner is back.
+const SAFE_PLACES = [
+  { place: 'the Grand Velmora Hotel', digits: 4, time: 15 },
+  { place: 'a gallery on Rue Royale', digits: 5, time: 18 },
+  { place: 'a yacht in the marina', digits: 5, time: 16 },
+  { place: 'a jeweler on Crown Hill', digits: 6, time: 20 },
+];
+
 // The Moretti test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
 // `shiftMoves` how long until the next shift arrives. `caughtBy` decides who has you if it goes wrong.
 const MORETTI_JOBS = [

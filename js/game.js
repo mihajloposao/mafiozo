@@ -657,6 +657,115 @@ function renderSneak() {
   modal.querySelector('.sctl button')?.focus();
 }
 
+// ---------- safe cracking (memory) ----------
+// Watch the owner punch in the code, then break in and type it from memory: three tries and a clock.
+// Smarts keep each digit lit longer. A week of watching shows the code twice; a bribed maid writes down half of it.
+const METHODS = { night: 'One night of watching', week: 'A week of watching', bribe: 'Bribe the maid' };
+let V = null; // the safe job in progress (not saved)
+
+function startSafe(job, title) {
+  V = { job, title, code: Array.from({ length: job.digits }, () => rnd(0, 9)).join(''), phase: 'choose', input: '', tries: 3, msg: '', run: 0 };
+  if (job.method) watchCode(); else renderSafe();
+}
+
+function startSafeTest() { startSafe({ ...pick(SAFE_PLACES), test: true }, 'Safe Test'); }
+
+// Lights the keys one by one, as if you were watching the owner's finger.
+function watchCode() {
+  V.phase = 'watch';
+  const run = ++V.run, hold = 400 + P.smarts * 6, digits = V.code.split('');
+  const seq = V.job.method === 'week' ? [...digits, 'pause', ...digits] : digits;
+  let i = 0;
+  renderSafe();
+  const tick = () => {
+    if (!V || V.run !== run) return;
+    const d = seq[i++];
+    if (d === undefined) { V.phase = 'ready'; return renderSafe(); }
+    if (d === 'pause') { $('.card.safe .tell').textContent = 'Another night. Watch again.'; return setTimeout(tick, 1200); }
+    const key = $(`.pad [data-key="${d}"]`);
+    key.classList.add('lit');
+    setTimeout(() => { key.classList.remove('lit'); setTimeout(tick, 180); }, hold);
+  };
+  setTimeout(tick, 800);
+}
+
+function breakIn() {
+  V.phase = 'enter';
+  V.deadline = performance.now() + V.job.time * 1000;
+  const run = ++V.run;
+  renderSafe();
+  const tick = () => {
+    if (!V || V.run !== run) return;
+    const left = (V.deadline - performance.now()) / (V.job.time * 1000);
+    if (left <= 0) return safeOver('late', 'Footsteps in the hall. The owner is back early.');
+    const clock = $('.clock');
+    if (clock) { clock.firstChild.style.width = `${left * 100}%`; clock.classList.toggle('low', left < 0.3); }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function safeKey(k) {
+  if (!V || V.phase !== 'enter') return;
+  V.msg = '';
+  if (k === 'ok') return tryCode();
+  if (k === 'del') V.input = V.input.slice(0, -1);
+  else if (V.input.length < V.code.length) V.input += k;
+  renderSafe();
+}
+
+function tryCode() {
+  if (V.input.length < V.code.length) return renderSafe();
+  if (V.input === V.code) return safeOver('open', V.tries === 3 ? 'Click. The door swings open on the first try.' : `Click. It opens on try number ${4 - V.tries}.`);
+  V.tries--;
+  V.input = '';
+  if (!V.tries) return safeOver('locked', 'Three wrong codes. The safe locks itself and an alarm starts screaming.');
+  V.msg = `Wrong code. ${V.tries === 1 ? 'One try' : `${V.tries} tries`} left.`;
+  V.shake = true;
+  renderSafe();
+}
+
+function safeOver(how, msg) {
+  Object.assign(V, { phase: 'over', result: how, msg, run: V.run + 1 });
+  renderSafe();
+}
+
+function safeCmd(cmd) {
+  if (cmd === 'quit') { V = null; return hideModal(); }
+  if (cmd === 'retry') return startSafeTest();
+  if (cmd === 'go') return breakIn();
+  if (METHODS[cmd] && V.phase === 'choose') { V.job.method = cmd; watchCode(); }
+}
+
+function renderSafe() {
+  const j = V.job, n = V.code.length, ph = V.phase, half = Math.ceil(n / 2);
+  const title = { choose: 'Safe Test', watch: 'Watch Closely', ready: 'Ready?', enter: 'Crack It' }[ph]
+    || { open: 'Open!', locked: 'Locked', late: 'Too Slow' }[V.result];
+  const tell = {
+    choose: `The safe in ${j.place} has a ${n}-digit code. How do you learn it?`,
+    watch: 'Through the binoculars you watch the owner punch in the code.',
+    ready: 'You have the code in your head. Hopefully.',
+    enter: V.msg || 'Type the code. The owner is back when the clock runs out.',
+  }[ph] || `${V.msg} The code was ${V.code}.`;
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'del', '0', 'ok'];
+  const pad = `<div class="pad">${keys.map(k => `<button class="key${k === 'ok' ? ' ok' : ''}" data-key="${k}" aria-label="${k === 'del' ? 'Delete' : k === 'ok' ? 'Enter' : k}">${{ del: '⌫', ok: '✓' }[k] || k}</button>`).join('')}</div>`;
+  const slots = `<div class="code${V.shake ? ' shake' : ''}">${Array.from({ length: n }, (_, i) => `<span>${V.input[i] ?? '·'}</span>`).join('')}</div>`;
+  const note = j.method === 'bribe' && ph !== 'watch' ? `<p class="note"><small>The maid's note</small>${V.code.slice(0, half).split('').join(' ')}${' _'.repeat(n - half)}</p>` : '';
+  const tries = `<p class="tries">${'●'.repeat(V.tries)}${'○'.repeat(3 - V.tries)}</p>`;
+  const body = {
+    choose: `<div class="choices">${Object.entries(METHODS).map(([k, v]) => `<button class="opt" data-sf="${k}">${v}</button>`).join('')}</div>`,
+    watch: pad,
+    ready: `${note}${pad}<div class="choices"><button class="primary" data-sf="go">Break in</button></div>`,
+    enter: `${note}${slots}${tries}<div class="clock"><i></i></div>${pad}`,
+  }[ph] || `${slots}<div class="row sctl"><button class="primary" data-sf="retry">Try again</button><button class="ghost" data-sf="quit">Close</button></div>`;
+  V.shake = false;
+  showModal(`<div class="card safe ${V.result === 'open' ? 'good' : V.result ? 'bad' : ''}" role="dialog" aria-modal="true">
+    <p class="kicker">${esc(V.title)} · ${esc(j.place)} · ${n} digits${j.method ? ` · ${METHODS[j.method]}` : ''}</p>
+    <h2>${title}</h2><p class="tell">${esc(tell)}</p>${body}
+    ${ph === 'over' ? '' : '<div class="row sctl"><button class="ghost" data-sf="quit">Quit</button></div>'}</div>`);
+  modal.querySelector('[data-sf]:not([data-sf=quit])')?.focus();
+}
+
 // ---------- screens ----------
 
 const app = $('#app');
@@ -713,8 +822,8 @@ const SHEETS = {
       ['Crimes committed', P.tally.crimes], ['Arrests', P.tally.arrests], ['Years inside', P.tally.served],
     ];
     return ['Profile', facts(rows) +
-      `<div class="list"><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.6</p>`];
+      `<div class="list"><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
+      `<p class="ver">Mafiozo 0.7</p>`];
   },
 };
 
@@ -808,6 +917,7 @@ const DO = {
   next() { hideModal(); if (P.alive) nextEvent(); else render(); },
   randomize,
   sneakTest() { closeSheet(); startSneak({ room: SNEAK_TEST }); },
+  safeTest() { closeSheet(); startSafeTest(); },
   flee,
   askRestart() {
     $('#restart').innerHTML = `<p class="hint">End ${esc(P.first)}'s life for good?</p><div class="row"><button class="danger" data-do="restart">Yes, start over</button><button class="ghost" data-close>Keep playing</button></div>`;
@@ -833,12 +943,17 @@ document.addEventListener('click', e => {
   else if (d.seek) seekFamily(d.seek);
   else if (d.tile) sneakTap(d.tile);
   else if (d.sn) sneakCmd(d.sn);
+  else if (d.key) safeKey(d.key);
+  else if (d.sf) safeCmd(d.sf);
   else if ('choice' in d) choose(+d.choice);
   else if ('close' in d) closeSheet();
   else if (d.do) DO[d.do]();
 });
 
-document.addEventListener('keydown', e => { if (e.key === 'Escape' && !sheet.hidden) closeSheet(); });
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && !sheet.hidden) closeSheet();
+  if (V && V.phase === 'enter') safeKey(/^\d$/.test(e.key) ? e.key : { Backspace: 'del', Enter: 'ok' }[e.key]); // typing on a keyboard
+});
 
 document.addEventListener('submit', e => {
   e.preventDefault();
