@@ -376,78 +376,123 @@ function endFight(kind) {
 
 // ---------- sneaking (turn-based) ----------
 // Tap a tile next to you to step there, wait, or toss a coin. After every action the guards take their turn.
-// Ending up on a watched tile means you are spotted. Step on a guard from right behind to knock them out.
+// Guards and cameras see a cone in front of them (walls and desks block it); the dog smells the 4 tiles around it.
+// Ending up on a covered tile means you are spotted. Step on a guard from right behind to knock them out.
 const DIRS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-const ARROW = { up: '↑', down: '↓', left: '←', right: '→' };
+const DIR8 = { ...DIRS, 'up-left': [-1, -1], 'up-right': [1, -1], 'down-left': [-1, 1], 'down-right': [1, 1] };
+const ARROW = { up: '↑', down: '↓', left: '←', right: '→', 'up-left': '↖', 'up-right': '↗', 'down-left': '↙', 'down-right': '↘' };
 const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
+const CCW = { up: 'left', left: 'down', down: 'right', right: 'up' };
 const GUARD_ICON = { cop: '👮', cam: '📷', dog: '🐕' };
 const SPOTTED = { cop: 'The guard saw you.', cam: 'The camera caught you.', dog: 'The dog smelled you and started barking.' };
+const CONE = { cop: 3, cam: 4 }; // how many tiles deep each one sees
 const dirOf = (a, b) => (b[0] > a[0] ? 'right' : b[0] < a[0] ? 'left' : b[1] > a[1] ? 'down' : 'up');
 let S = null; // the sneak in progress (not saved)
 
 function startSneak(room) {
   const tiles = room.map.map(r => r.split(''));
   const y = tiles.findIndex(r => r.includes('S')), x = tiles[y].indexOf('S');
-  const guards = room.guards.map(g => {
-    const c = { ...g };
-    if (g.type === 'cop') Object.assign(c, { i: 0, d: 1, x: g.route[0][0], y: g.route[0][1], face: dirOf(g.route[0], g.route[1]) });
-    if (g.type === 'cam') Object.assign(c, { k: 0, face: g.turns[0] });
-    return c;
-  });
+  const guards = room.guards.map(g => ({ face: g.turns ? g.turns[0] : 'down', k: 0, wait: 0, path: [], looks: [], ...g }));
   S = { room, tiles, guards, x, y, got: false, cash: 0, coins: 2, moves: 0, aiming: false, over: null, msg: '' };
   guards.forEach(planGuard);
   renderSneak();
 }
 
 const tileAt = (x, y) => (S.tiles[y] || [])[x];
-const clearAt = (x, y) => { const t = tileAt(x, y); return !!t && t !== '#' && t !== 'B'; }; // sight passes
+const clearAt = (x, y) => { const t = tileAt(x, y); return !!t && t !== '#' && t !== 'B'; }; // sight and steps pass
 const guardAt = (x, y) => S.guards.find(g => !g.down && g.x === x && g.y === y);
 const walkable = (x, y) => clearAt(x, y) && !guardAt(x, y);
+const roamable = (x, y) => ['.', '$'].includes(tileAt(x, y)); // guards keep off the door and the target
 
+// Shortest walk for a guard, as a list of steps.
+function pathTo(x0, y0, [gx, gy]) {
+  const prev = { [`${x0},${y0}`]: null }, queue = [[x0, y0]];
+  while (queue.length) {
+    const [x, y] = queue.shift();
+    if (x === gx && y === gy) {
+      const steps = [];
+      for (let k = `${x},${y}`; prev[k]; k = prev[k]) steps.unshift(k.split(',').map(Number));
+      return steps;
+    }
+    for (const [dx, dy] of Object.values(DIRS)) {
+      const k = `${x + dx},${y + dy}`;
+      if (!(k in prev) && roamable(x + dx, y + dy)) { prev[k] = `${x},${y}`; queue.push([x + dx, y + dy]); }
+    }
+  }
+  return [];
+}
+
+function lineClear(x0, y0, x1, y1) {
+  const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+  for (let i = 1; i < n; i++) if (!clearAt(Math.round(x0 + ((x1 - x0) * i) / n), Math.round(y0 + ((y1 - y0) * i) / n))) return false;
+  return true;
+}
+
+// Tiles a guard covers, with their distance: a cone for guards and cameras, the 4 neighbors for the dog.
 function sightOf(g) {
   if (g.down) return [];
-  if (g.type === 'dog') return Object.values(DIRS).map(([dx, dy]) => [g.x + dx, g.y + dy]).filter(([x, y]) => clearAt(x, y));
-  const [dx, dy] = DIRS[g.face], out = [];
-  for (let n = 1, x = g.x + dx, y = g.y + dy; n <= (g.type === 'cam' ? 3 : 2) && clearAt(x, y); n++, x += dx, y += dy) out.push([x, y]);
+  if (g.type === 'dog') return Object.values(DIRS).map(([dx, dy]) => [g.x + dx, g.y + dy, 1]).filter(([x, y]) => clearAt(x, y));
+  const [fx, fy] = DIR8[g.face], fl = Math.hypot(fx, fy), out = [];
+  S.tiles.forEach((row, y) => row.forEach((t, x) => {
+    const dx = x - g.x, dy = y - g.y, dist = Math.hypot(dx, dy);
+    if (dist && dist <= CONE[g.type] + 0.5 && clearAt(x, y) && (dx * fx + dy * fy) / (dist * fl) >= 0.85 && lineClear(g.x, g.y, x, y)) out.push([x, y, dist]);
+  }));
   return out;
 }
 const spotter = () => S.guards.find(g => sightOf(g).some(([x, y]) => x === S.x && y === S.y));
 
-// Decides each guard's next action in advance, so the arrows can show it.
+// Each guard decides its next action a turn ahead, so the arrows can show it.
 function planGuard(g) {
+  if (g.down) return;
   if (g.type === 'cam') g.plan = { face: g.turns[(g.k + 1) % g.turns.length] };
-  if (g.type !== 'cop') return;
-  const ahead = g.route[g.i + g.d];
-  if (g.wait > 0) g.plan = { stay: true }; // listening for the coin
-  else if (g.back) g.plan = { face: dirOf(g.route[g.i], ahead) }; // done looking over the shoulder
-  else if (!ahead) g.plan = { face: dirOf(g.route[g.i], g.route[g.i - g.d]), flip: true }; // end of the route
-  else if (chance(0.15)) g.plan = { face: OPP[g.face], glance: true };
-  else g.plan = { to: ahead };
+  else if (g.type === 'cop' && g.wait > 0) g.plan = { stay: true }; // listening for the coin
+  else if (g.looks.length) g.plan = { face: g.looks[0] };
+  else if (g.type === 'dog') g.plan = dogStep(g);
+  else {
+    if (!g.path.length) g.path = pathTo(g.x, g.y, pick(g.points.filter(([x, y]) => x !== g.x || y !== g.y)));
+    if (g.path.length && chance(0.1)) { g.looks = [OPP[g.face]]; g.plan = { face: OPP[g.face] }; } // a look over the shoulder
+    else g.plan = g.path.length ? { to: g.path[0] } : { stay: true };
+  }
 }
 
+function dogStep(g) {
+  if (g.goal) {
+    const path = g.wait > 0 ? pathTo(g.x, g.y, g.goal) : [];
+    if (path.length) return { to: path[0] }; // running to the coin
+    g.goal = null;
+  }
+  if (chance(0.3)) return { stay: true }; // nose to the floor
+  const [x1, y1, x2, y2] = g.zone;
+  const steps = Object.values(DIRS).map(([dx, dy]) => [g.x + dx, g.y + dy])
+    .filter(([x, y]) => x >= x1 && x <= x2 && y >= y1 && y <= y2 && roamable(x, y));
+  return steps.length ? { to: pick(steps) } : { stay: true };
+}
+
+// Carries out the planned action. Returns true when the guard walks straight into you.
 function actGuard(g) {
   const p = g.plan;
+  if (g.down || !p) return false;
   if (g.type === 'cam') { g.k = (g.k + 1) % g.turns.length; g.face = g.turns[g.k]; }
-  if (g.type === 'cop') {
-    if (p.stay) g.wait--;
-    else if (p.to) {
-      if (p.to[0] === S.x && p.to[1] === S.y) return true; // walked straight into you
+  else if (p.to) {
+    if (p.to[0] === S.x && p.to[1] === S.y) return true;
+    if (!guardAt(...p.to)) {
       g.face = dirOf([g.x, g.y], p.to);
-      g.i += g.d;
       [g.x, g.y] = p.to;
-    } else {
-      g.face = p.face;
-      g.back = !!p.glance;
-      if (p.flip) g.d = -g.d;
+      if (g.type === 'cop') {
+        g.path.shift();
+        if (!g.path.length && chance(0.5)) g.looks = [CCW[g.face], OPP[CCW[g.face]]]; // arrived: look left, then right
+      }
     }
-  }
+  } else if (p.face) { g.face = p.face; g.looks.shift(); }
+  if (g.wait > 0) g.wait--;
   planGuard(g);
+  return false;
 }
 
 function endTurn(msg) {
   S.moves++;
   S.msg = msg;
-  for (const g of S.guards) if (!g.down && actGuard(g)) return sneakOver('caught', 'The guard walked right into you.');
+  for (const g of S.guards) if (actGuard(g)) return sneakOver('caught', g.type === 'dog' ? 'The dog ran right into you.' : 'The guard walked right into you.');
   const g = spotter();
   if (g) return sneakOver('caught', SPOTTED[g.type]);
   renderSneak();
@@ -468,14 +513,16 @@ function sneakTap(key) {
     S.aiming = false;
     S.coins--;
     for (const g of S.guards) {
-      if (g.type !== 'cop' || g.down || Math.abs(g.x - x) + Math.abs(g.y - y) > 4) continue;
-      const dx = x - g.x, dy = y - g.y;
-      g.face = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
-      g.wait = 2;
-      g.back = false;
+      const far = Math.abs(g.x - x) + Math.abs(g.y - y), dx = x - g.x, dy = y - g.y;
+      if (g.down) continue;
+      if (g.type === 'cop' && far <= 5) {
+        g.face = Math.abs(dx) >= Math.abs(dy) ? (dx > 0 ? 'right' : 'left') : dy > 0 ? 'down' : 'up';
+        Object.assign(g, { wait: 2, looks: [] });
+      } else if (g.type === 'dog' && far <= 6) Object.assign(g, { goal: [x, y], wait: 4 });
+      else continue;
       planGuard(g);
     }
-    return endTurn('Clink. The guard turns toward the sound.');
+    return endTurn('Clink. Heads turn toward the sound.');
   }
   if (dist !== 1) return;
   const g = guardAt(x, y);
@@ -508,25 +555,31 @@ function sneakCmd(cmd) {
 }
 
 function renderSneak() {
-  const seen = new Set(), smell = new Set(), next = new Set();
+  const cover = {}, next = {};
   for (const g of S.guards) {
-    for (const [x, y] of sightOf(g)) (g.type === 'dog' ? smell : seen).add(`${x},${y}`);
-    if (!g.down && g.plan && g.plan.to) next.add(g.plan.to.join(','));
+    for (const [x, y, dist] of sightOf(g)) {
+      const c = (cover[`${x},${y}`] ||= {});
+      c[g.type] = Math.max(c[g.type] || 0, dist <= 1.5 ? 0.5 : dist <= 2.5 ? 0.36 : 0.24); // stronger close to the source
+    }
+    if (!g.down && g.plan && g.plan.to) next[g.plan.to.join(',')] = g.type;
   }
   const me = esc(P ? P.first[0] + P.last[0] : 'ME');
   let cells = '';
   S.tiles.forEach((row, y) => row.forEach((t, x) => {
-    const key = `${x},${y}`, g = guardAt(x, y), d = Math.abs(x - S.x) + Math.abs(y - S.y);
+    const key = `${x},${y}`, g = guardAt(x, y), c = cover[key] || {}, d = Math.abs(x - S.x) + Math.abs(y - S.y);
     const ko = S.guards.some(o => o.down && o.x === x && o.y === y);
-    const cls = [t === '#' ? 'wall' : t === 'B' ? 'cover' : 'floor', seen.has(key) && 'seen', smell.has(key) && 'smell', next.has(key) && 'next',
+    const cls = [t === '#' ? 'wall' : t === 'B' ? 'cover' : 'floor', g && g.type === 'cam' && 'camera',
+      c.cop && 'cop', c.cam && 'cam', c.dog && 'smell', next[key] && `next-${next[key]}`,
       !S.over && (S.aiming ? d <= 3 && clearAt(x, y) && 'aim' : d === 1 && walkable(x, y) && 'near')].filter(Boolean).join(' ');
     let inner = { '*': '📁', $: '💵', S: '🚪' }[t] || (ko ? '💤' : '');
     if (x === S.x && y === S.y) inner = `<span class="me">${me}</span>`;
-    else if (g) inner = GUARD_ICON[g.type] + (g.type === 'dog' ? '' : `<i class="nx">${ARROW[g.plan.to ? dirOf([g.x, g.y], g.plan.to) : g.plan.face || g.face]}</i>`);
-    cells += `<button class="tl ${cls}" data-tile="${key}" aria-label="Tile ${x + 1}, ${y + 1}">${inner}</button>`;
+    else if (g) {
+      const p = g.plan || {}, arrow = p.to ? ARROW[dirOf([g.x, g.y], p.to)] : p.face ? ARROW[p.face] : '';
+      inner = GUARD_ICON[g.type] + (arrow ? `<i class="nx ${g.type}">${arrow}</i>` : '');
+    }
+    cells += `<button class="tl ${cls}" style="--ac:${c.cop || 0};--ak:${c.cam || 0}" data-tile="${key}" aria-label="Tile ${x + 1}, ${y + 1}">${inner}</button>`;
   }));
-  const tip = S.aiming ? 'Tap a tile up to 3 steps away to toss the coin.'
-    : S.msg || 'Grab the file 📁 and get back to the door 🚪.';
+  const tip = S.aiming ? 'Tap a tile up to 3 steps away to toss the coin.' : S.msg || 'Grab the file 📁 and get back to the door 🚪.';
   const controls = S.over
     ? `<button class="primary" data-sn="retry">Try again</button><button class="ghost" data-sn="quit">Close</button>`
     : `<button class="opt" data-sn="wait">Wait</button><button class="opt" data-sn="coin"${S.coins ? '' : ' disabled'}>${S.aiming ? 'Cancel' : `Coin ×${S.coins}`}</button><button class="ghost" data-sn="quit">Quit</button>`;
@@ -536,7 +589,8 @@ function renderSneak() {
     <p class="tell">${esc(tip)}</p>
     <div class="sgrid" style="--cols:${S.tiles[0].length}">${cells}</div>
     <div class="row sctl">${controls}</div>
-    <p class="rules">Red: a guard sees it · Yellow: the dog smells it · Arrows: next move · Step on a guard from behind to knock them out.</p></div>`);
+    <div class="legend"><span><i class="k cop"></i>Guard sees</span><span><i class="k cam"></i>Camera sees</span><span><i class="k dog"></i>Dog smells</span></div>
+    <p class="rules">Walls and desks block the view. Arrows show each one's next move. Step on a guard from behind to knock them out.</p></div>`);
   modal.querySelector('.sctl button')?.focus();
 }
 

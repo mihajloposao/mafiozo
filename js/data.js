@@ -69,15 +69,15 @@ const FOES = {
 };
 
 // Sneaking rooms for the turn-based minigame. Map rows run top to bottom:
-// # wall, B cover (blocks sight), . floor, S way in and out, * target, $ cash.
-// Guards: cop walks `route` back and forth and sees 2 tiles ahead; cam sits on a wall, turns through `turns`
-// and sees 3 tiles; dog smells the 4 tiles around it.
+// # wall, B desk or cabinet (blocks sight), . floor, S way in and out, * target, $ cash.
+// cop: walks between `points` the shortest way and sees a cone 3 tiles deep. cam: sits on a wall,
+// sweeps through `turns` and sees 4 deep. dog: roams its `zone` [x1, y1, x2, y2] and smells the 4 tiles around it.
 const SNEAK_TEST = {
-  map: ['$.*.#', '.B.B.', '.....', '.B.B.', '.....', '.B...', '##S##'],
+  map: ['*....#', '..BB..', 'B.....', '..B.B.', '..B.B.', '.....$', '.B....', '##S###'],
   guards: [
-    { type: 'cop', route: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2]] },
-    { type: 'cam', x: 4, y: 0, turns: ['left', 'down', 'down'] },
-    { type: 'dog', x: 0, y: 4 },
+    { type: 'cop', x: 0, y: 3, face: 'down', points: [[0, 3], [5, 3], [3, 6], [3, 0], [1, 1]] },
+    { type: 'cam', x: 5, y: 0, turns: ['left', 'down-left', 'down', 'down-left'] },
+    { type: 'dog', x: 4, y: 6, zone: [3, 4, 5, 6] },
   ],
 };
 
