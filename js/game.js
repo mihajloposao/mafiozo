@@ -385,7 +385,7 @@ const OPP = { up: 'down', down: 'up', left: 'right', right: 'left' };
 const CCW = { up: 'left', left: 'down', down: 'right', right: 'up' };
 const GUARD_ICON = { cop: '👮', cam: '📷', dog: '🐕' };
 const SPOTTED = { cop: 'The guard saw you.', cam: 'The camera caught you.', dog: 'The dog smelled you and started barking.' };
-const CONE = { cop: 3, cam: 4 }; // how many tiles deep each one sees
+const CONE = { cop: 3, cam: 3 }; // how many tiles deep each one sees
 const dirOf = (a, b) => (b[0] > a[0] ? 'right' : b[0] < a[0] ? 'left' : b[1] > a[1] ? 'down' : 'up');
 let S = null; // the sneak in progress (not saved)
 
@@ -555,13 +555,14 @@ function sneakCmd(cmd) {
 }
 
 function renderSneak() {
-  const cover = {}, next = {};
+  const cover = {}, next = {}, route = new Set();
   for (const g of S.guards) {
     for (const [x, y, dist] of sightOf(g)) {
       const c = (cover[`${x},${y}`] ||= {});
       c[g.type] = Math.max(c[g.type] || 0, dist <= 1.5 ? 0.5 : dist <= 2.5 ? 0.36 : 0.24); // stronger close to the source
     }
     if (!g.down && g.plan && g.plan.to) next[g.plan.to.join(',')] = g.type;
+    if (g.type === 'cop' && !g.down) g.path.forEach(([x, y]) => route.add(`${x},${y}`)); // where the guard is heading
   }
   const me = esc(P ? P.first[0] + P.last[0] : 'ME');
   let cells = '';
@@ -569,7 +570,7 @@ function renderSneak() {
     const key = `${x},${y}`, g = guardAt(x, y), c = cover[key] || {}, d = Math.abs(x - S.x) + Math.abs(y - S.y);
     const ko = S.guards.some(o => o.down && o.x === x && o.y === y);
     const cls = [t === '#' ? 'wall' : t === 'B' ? 'cover' : 'floor', g && g.type === 'cam' && 'camera',
-      c.cop && 'cop', c.cam && 'cam', c.dog && 'smell', next[key] && `next-${next[key]}`,
+      c.cop && 'cop', c.cam && 'cam', c.dog && 'smell', next[key] && `next-${next[key]}`, route.has(key) && 'route',
       !S.over && (S.aiming ? d <= 3 && clearAt(x, y) && 'aim' : d === 1 && walkable(x, y) && 'near')].filter(Boolean).join(' ');
     let inner = { '*': '📁', $: '💵', S: '🚪' }[t] || (ko ? '💤' : '');
     if (x === S.x && y === S.y) inner = `<span class="me">${me}</span>`;
@@ -590,7 +591,7 @@ function renderSneak() {
     <div class="sgrid" style="--cols:${S.tiles[0].length}">${cells}</div>
     <div class="row sctl">${controls}</div>
     <div class="legend"><span><i class="k cop"></i>Guard sees</span><span><i class="k cam"></i>Camera sees</span><span><i class="k dog"></i>Dog smells</span></div>
-    <p class="rules">Walls and desks block the view. Arrows show each one's next move. Step on a guard from behind to knock them out.</p></div>`);
+    <p class="rules">Walls and desks block the view. Arrows show each one's next move, dots the guard's route. Step on a guard from behind to knock them out.</p></div>`);
   modal.querySelector('.sctl button')?.focus();
 }
 
