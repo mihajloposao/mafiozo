@@ -14,7 +14,7 @@ const FAMILIES = ['Moretti', 'Volkov', 'Delacroix', 'Castellano'];
 // What the street says about each family, and the event (`scene`) that tests newcomers.
 // Families without a scene are not open yet.
 const FAMILY_INFO = {
-  Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.' },
+  Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.', scene: 'moretti' },
   Volkov: { rumor: 'With the Russians, only your fists talk.', scene: 'volkov' },
   Delacroix: { rumor: 'The Delacroix have no patience for fools.' },
   Castellano: { rumor: 'With the Castellanos, everything has a price.' },
@@ -69,11 +69,14 @@ const FOES = {
 };
 
 // Sneaking rooms for the turn-based minigame. Map rows run top to bottom:
-// # wall, B desk or cabinet (blocks sight), . floor, S way in and out, * target, $ cash.
+// # wall, B desk or cabinet (blocks sight), . floor, S front door, R back way, * target, $ bonus.
+// Nobody can see into a doorway, so waiting at the door is always safe.
 // cop: walks between `points` the shortest way and sees a cone 3 tiles deep. cam: sits on a wall and
 // turns through `turns` (repeat a direction to make it linger). dog: roams its `zone` [x1, y1, x2, y2]
 // and smells the 4 tiles around it. Keep the entrance out of every cone so the start is safe.
 const SNEAK_TEST = {
+  target: '📁',
+  bonus: { icon: '💵', text: 'You pocketed $500.', fx: { money: 500 } },
   map: ['#.*..B.', '.....B.', '.BB....', '....B..', '.B..B..', '...B...', 'B.....B', '.B.B..$', '.B..B..', '###S###'],
   guards: [
     { type: 'cop', x: 6, y: 1, face: 'left', points: [[6, 1], [1, 1], [3, 3], [1, 5], [5, 4]] },
@@ -81,6 +84,67 @@ const SNEAK_TEST = {
     { type: 'dog', x: 5, y: 7, zone: [4, 5, 6, 8] },
   ],
 };
+
+// The Moretti test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
+// `shiftMoves` how long until the next shift arrives. `caughtBy` decides who has you if it goes wrong.
+const MORETTI_JOBS = [
+  { place: 'the Old Quay precinct', caughtBy: 'police',
+    brief: 'The cops have a rat inside our family. The rat\'s file sits in the Old Quay precinct. Bring it to us.',
+    win: 'You walked out of the precinct with the rat\'s file under your coat.',
+    room: { target: '📁', bonus: { icon: '🗂️', text: 'You swiped your own police file too.', fx: { heat: -20 } }, shiftOff: 2, shiftMoves: 40,
+      map: ['###R###', '.B..B..', '...B.B.', '.B.....', '...B.B.', '.B.....', '*..B.B.', '.B.B..$', '.B..B..', '###S###'],
+      guards: [
+        { type: 'cop', x: 6, y: 3, face: 'left', points: [[6, 3], [2, 4], [4, 5], [6, 6], [0, 3]] },
+        { type: 'cam', x: 0, y: 0, turns: ['down', 'down', 'down-right', 'down-right'] },
+        { type: 'cam', x: 0, y: 9, turns: ['up', 'up', 'up-right', 'up-right'] },
+      ] } },
+  { place: 'a rival club', caughtBy: 'mob',
+    brief: 'The {rival}s keep our late Don\'s ring in the VIP booth of their club, like a trophy. Bring it home.',
+    win: 'You brought the old Don\'s ring home. The widow cried.',
+    room: { target: '💍', bonus: { icon: '💵', text: 'You emptied the bar till: $1,500.', fx: { money: 1500 } }, shiftOff: 1, shiftMoves: 40,
+      map: ['###R###', '.B..B..', '...B...', 'B.....B', '..BBB..', '.......', '*B...B.', '.B.B..$', '.B..B..', '###S###'],
+      guards: [
+        { type: 'cop', icon: '🕴️', x: 5, y: 3, face: 'left', points: [[5, 3], [1, 3], [2, 5], [6, 5]] },
+        { type: 'dog', x: 5, y: 7, zone: [4, 5, 6, 8] },
+        { type: 'cam', x: 6, y: 0, turns: ['down', 'down', 'down-left', 'down-left'] },
+      ] } },
+  { place: 'a house in Harbor Heights', caughtBy: 'police',
+    brief: 'A witness is blackmailing one of our capos with photos. They are in a house in Harbor Heights, under police protection. Get them.',
+    win: 'You burned the photos in the bakery oven that night.',
+    room: { target: '📸', bonus: { icon: '💎', text: 'You pocketed a jewelry box worth $1,000.', fx: { money: 1000 } }, shiftOff: 1, shiftMoves: 40,
+      map: ['###R###', '.B..B..', '...B...', '##.##.#', '.......', '.B.#.B.', '*..#...', '.B.B..$', '.B..B..', '###S###'],
+      guards: [
+        { type: 'cop', x: 6, y: 4, face: 'left', points: [[6, 4], [0, 4], [1, 6], [5, 6]] },
+        { type: 'dog', x: 5, y: 7, zone: [4, 5, 6, 8] },
+      ] } },
+  { place: 'a law office downtown', caughtBy: 'police',
+    brief: 'A lawyer is about to hand the DA a tape of one of our capos confessing. It is in the lawyer\'s office downtown. Get it first.',
+    win: 'The tape went into the harbor. The capo sent you a case of wine.',
+    room: { target: '💾', bonus: { icon: '💵', text: 'You found $2,000 of petty cash.', fx: { money: 2000 } }, shiftOff: 1, shiftMoves: 40,
+      map: ['###R###', '.B..B..', '...B...', '.B...B.', '...B...', 'B.....B', '.B..B.*', '.B.B...', '.B..B.$', '###S###'],
+      guards: [
+        { type: 'cop', x: 0, y: 4, face: 'right', points: [[0, 4], [6, 4], [3, 6]] },
+        { type: 'cop', x: 6, y: 2, face: 'left', points: [[6, 2], [0, 2], [2, 4]] },
+        { type: 'cam', x: 0, y: 0, turns: ['down', 'down', 'down-right', 'down-right'] },
+      ] } },
+];
+
+function morettiJob(p, c, entry) {
+  p.done.seek = true;
+  const job = MORETTI_JOBS[c.job];
+  return { sneak: { room: job.room, entry, label: 'Moretti test', end: (how, bonus) => morettiEnd(job, how, bonus) } };
+}
+
+// Clean gets you in with respect, loud gets you in with heat. Caught leads to a last choice (the `nabbed` event).
+function morettiEnd(job, how, bonus) {
+  const extra = bonus ? job.room.bonus.fx : {};
+  if (how === 'win') return joinFamily('Moretti', `Not a soul saw you. ${job.win} The old men were impressed.`, { respect: rnd(8, 12), ...extra });
+  if (how === 'loud') return joinFamily('Moretti', `It got loud and people saw your face, but ${job.win.charAt(0).toLowerCase()}${job.win.slice(1)}`, { heat: rnd(20, 30), ...extra });
+  if (how === 'fled') return bad('You got out, but empty-handed. The Morettis will not try you again this year.', { respect: -3, ...extra });
+  if (how === 'quit') return meh('You walked away before it went wrong. Maybe next year.');
+  P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
+  return null;
+}
 
 // Crimes: base success chance plus reward, respect, heat and sentence ranges.
 // Real odds also depend on smarts, respect, heat, your crew and lockpicking (see odds() in game.js).
@@ -178,6 +242,29 @@ const EVENTS = [
       { label: 'Step into the ring', run: (p, c) => volkovFight(p, c.foe, false) },
       { label: 'Ask for their champion', run: p => volkovFight(p, VOLKOV_CHAMP, true) },
       { label: 'Walk away', run: () => meh('Not tonight. The Volkovs are not going anywhere.') },
+    ] },
+  { id: 'moretti', title: 'The Moretti Test', scene: true, when: p => !p.fam,
+    ctx: () => ({ job: rnd(0, MORETTI_JOBS.length - 1), rival: pick(['Volkov', 'Delacroix', 'Castellano']) }),
+    text: (p, c) => `A Moretti capo meets you behind a bakery on Crown Hill. "You want in? Prove it. ${MORETTI_JOBS[c.job].brief.replace('{rival}', c.rival)}" In disguise, guards only notice you up close, but once they do they never let go. The back way is longer, with more cover. During the shift change there is one guard fewer, but the next shift comes fast.`,
+    choices: [
+      { label: 'Front door, in disguise', run: (p, c) => morettiJob(p, c, 'mask') },
+      { label: 'The back way', run: (p, c) => morettiJob(p, c, 'back') },
+      { label: 'During the shift change', run: (p, c) => morettiJob(p, c, 'shift') },
+      { label: 'Walk away', run: () => meh('"Come back when you have the stomach for it."') },
+    ] },
+  { id: 'nabbed', title: 'Caught', scene: true, when: () => true,
+    text: (p, c) => (c.by === 'mob' ? 'Two of their men have you pinned against the wall.' : 'A cop has you by the collar. Backup is two minutes out.'),
+    choices: [
+      { label: 'Break free and run', run: (p, c) => chance(0.3 + p.health / 250)
+        ? bad('You twisted loose and ran. No prize, no family, but no cuffs either.', { heat: rnd(10, 15) })
+        : c.by === 'mob' ? bad('You did not get far. They made sure you remember it.', { health: -rnd(20, 35) }, 'Beaten to death by a rival family')
+        : arrest(rnd(1, 3), 'You did not get far.') },
+      { label: 'Fight', run: (p, c) => brawl('thug', c.by === 'mob' ? 'the bouncer' : 'the cop',
+        () => bad('You fought your way out, empty-handed. They know your face now.', { heat: rnd(12, 18), respect: 3 }),
+        () => (c.by === 'mob' ? bad('They beat you and dumped you in the harbor. You crawled out.', { health: -rnd(10, 20) }, 'Beaten to death by a rival family')
+          : arrest(rnd(2, 4), 'You lost the fight and woke up in cuffs.'))) },
+      { label: 'Give up', run: (p, c) => (c.by === 'mob' ? bad('You raised your hands. They beat you anyway and dumped you in an alley.', { health: -rnd(20, 35) }, 'Beaten to death by a rival family')
+        : arrest(rnd(1, 2), 'You raised your hands.')) },
     ] },
   { id: 'kid', title: 'Growing Up', w: 1.5, when: p => p.age >= 2 && p.age <= 6,
     auto: () => pick([

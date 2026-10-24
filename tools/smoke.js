@@ -17,8 +17,8 @@ const path = require('path');
   let shot = false;
   for (let life = 1; life <= 3; life++) {
     await page.click('button[type=submit]');
-    for (let step = 0; step < 600 && !(await page.$('.dead')); step++) {
-      if (await clickAny('.overlay.modal:not([hidden]) button')) continue;
+    for (let step = 0; step < 1200 && !(await page.$('.dead')); step++) {
+      if (await clickAny('.overlay.modal:not([hidden]) button:not([disabled])')) continue;
       if (await page.$('.overlay.sheet:not([hidden])')) {
         if (!(await clickAny('.overlay.sheet:not([hidden]) .item:not([disabled])'))) await page.click('[data-close]');
         continue;
@@ -32,8 +32,8 @@ const path = require('path');
     }
     const summary = await page.$eval('.dead', el => el.innerText.replace(/\s+/g, ' ').slice(0, 200)).catch(() => 'still alive');
     console.log(`life ${life}: ${summary}`);
-    await clickAny('.overlay.modal:not([hidden]) button');
-    await page.click('[data-do=restart]').catch(() => {});
+    await clickAny('.overlay.modal:not([hidden]) button:not([disabled])');
+    await page.evaluate(() => DO.restart()); // also ends a life that is still going
   }
   await browser.close();
   console.log(errors.length ? `ERRORS:\n${errors.join('\n')}` : 'no page errors');

@@ -37,8 +37,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 ## Roadmap
 1. Phase 1 (done): life loop, stats, crimes, heat, prison, jobs, ~20 events, death, save.
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
-   a. Joining a family on purpose (in progress: Volkov ring done; next Moretti sneaking with varied targets,
-      Delacroix memory safe, Castellano collecting from three random debtors). "Seek Out a Family" in Crime, once a year;
+   a. Joining a family on purpose (in progress: Volkov ring and Moretti sneaking done (MORETTI_JOBS: 4 rooms, entry mask/back/shift);
+      next Delacroix memory safe, Castellano collecting from three random debtors). "Seek Out a Family" in Crime, once a year;
       each family runs approach, minigame test, verdict. The owner plans every segment before it is built: never build unasked.
    Later segments, each planned separately: joining by chance (an offer after something memorable);
    life inside a family (ranks associate to don, trust with the boss, family jobs, promotions).
