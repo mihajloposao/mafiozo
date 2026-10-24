@@ -673,7 +673,7 @@ function startSafeTest() { startSafe({ ...pick(SAFE_PLACES), test: true }, 'Safe
 // Lights the keys one by one, as if you were watching the owner's finger.
 function watchCode() {
   V.phase = 'watch';
-  const run = ++V.run, hold = 400 + P.smarts * 6, digits = V.code.split('');
+  const run = ++V.run, hold = 250 + P.smarts * 4, digits = V.code.split('');
   const seq = V.job.method === 'week' ? [...digits, 'pause', ...digits] : digits;
   let i = 0;
   renderSafe();
@@ -684,9 +684,9 @@ function watchCode() {
     if (d === 'pause') { $('.card.safe .tell').textContent = 'Another night. Watch again.'; return setTimeout(tick, 1200); }
     const key = $(`.pad [data-key="${d}"]`);
     key.classList.add('lit');
-    setTimeout(() => { key.classList.remove('lit'); setTimeout(tick, 180); }, hold);
+    setTimeout(() => { key.classList.remove('lit'); setTimeout(tick, 120); }, hold);
   };
-  setTimeout(tick, 800);
+  setTimeout(tick, 600);
 }
 
 function breakIn() {
