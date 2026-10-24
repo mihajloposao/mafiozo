@@ -144,6 +144,24 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; text-tran
 .meter b { position: absolute; top: -6px; bottom: -6px; left: 0; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--fg); }
 .strike { width: 100%; padding: 16px; border-radius: 8px; font-size: 18px; }
 
+/* sneaking */
+.list + .list { margin-top: 8px; }
+.card.sneak { animation: none; }
+.card.sneak h2 { font-size: 26px; margin-bottom: 6px; }
+.card.sneak .tell { font-size: 14px; font-style: normal; }
+.sgrid { display: grid; grid-template-columns: repeat(var(--cols), minmax(0, 1fr)); gap: 3px; margin: 10px 0; }
+.tl { position: relative; aspect-ratio: 1; display: grid; place-items: center; padding: 0; border: 1px solid transparent; border-radius: 6px; background: var(--raise); font-size: 22px; line-height: 1; }
+.tl.wall { background: var(--bg); }
+.tl.cover { background: repeating-linear-gradient(45deg, var(--line) 0 4px, var(--panel) 4px 8px); }
+.tl.seen { background: rgb(214 76 64 / .3); }
+.tl.smell { background: rgb(202 162 76 / .25); }
+.tl.near { border-color: var(--brass); }
+.tl.aim { border: 1px dashed var(--fg); }
+.tl.next { outline: 2px dashed rgb(214 76 64 / .75); outline-offset: -5px; }
+.tl .me { width: 72%; height: 72%; display: grid; place-items: center; border-radius: 50%; background: var(--brass); color: var(--ink); font: 800 15px/1 var(--display); }
+.tl .nx { position: absolute; right: 3px; bottom: 2px; font: 700 13px/1 var(--body); color: var(--blood); }
+.sctl > button { padding: 12px 4px; }
+
 /* start and death screens */
 .start, .dead { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; overflow-y: auto; padding-block: 24px; }
 .eyebrow { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .22em; color: var(--brass); }

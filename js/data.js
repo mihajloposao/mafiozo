@@ -68,6 +68,19 @@ const FOES = {
   brute: { hp: 80, pow: 21, spd: 1.3, mix: { punch: 3, block: 1, grapple: 1 } },
 };
 
+// Sneaking rooms for the turn-based minigame. Map rows run top to bottom:
+// # wall, B cover (blocks sight), . floor, S way in and out, * target, $ cash.
+// Guards: cop walks `route` back and forth and sees 2 tiles ahead; cam sits on a wall, turns through `turns`
+// and sees 3 tiles; dog smells the 4 tiles around it.
+const SNEAK_TEST = {
+  map: ['$.*.#', '.B.B.', '.....', '.B.B.', '.....', '.B...', '##S##'],
+  guards: [
+    { type: 'cop', route: [[0, 2], [1, 2], [2, 2], [3, 2], [4, 2]] },
+    { type: 'cam', x: 4, y: 0, turns: ['left', 'down', 'down'] },
+    { type: 'dog', x: 0, y: 4 },
+  ],
+};
+
 // Crimes: base success chance plus reward, respect, heat and sentence ranges.
 // Real odds also depend on smarts, respect, heat, your crew and lockpicking (see odds() in game.js).
 const CRIMES = [

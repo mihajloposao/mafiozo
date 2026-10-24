@@ -20,6 +20,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   `scene: true` events never roll at random; they run when started (Seek Out a Family uses FAMILY_INFO[name].scene).
   Families: no visible requirements, only street rumors; each test picks a random variant (venue, opponent, place).
+  Sneaking minigame (turn-based grid, rooms like SNEAK_TEST in data.js): `startSneak(room)`; only a test room in Profile so far.
   Context `c`: first, last, full, n (name with nickname), crew, rival, fam, cop. Write NPC lines without pronouns.
 - Save lives in localStorage under `mafiozo.save.v1`; change the key if the save shape changes incompatibly.
 
