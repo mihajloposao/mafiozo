@@ -659,8 +659,11 @@ function renderSneak() {
 
 // ---------- safe cracking (memory) ----------
 // Watch the owner punch in the code, then break in and type it from memory: three tries and a clock.
-// Smarts keep each digit lit longer. A week of watching shows the code twice; a bribed maid writes down half of it.
-const METHODS = { night: 'One night of watching', week: 'A week of watching', bribe: 'Bribe the staff' };
+// Smarts keep each digit lit longer. Hiding in the closet gives a closer, longer look, unless the owner opens it
+// (smarter crooks pick better hiding spots); a bribed insider writes down half the code.
+const METHODS = { scope: 'Binoculars across the street', closet: 'Hide in the closet', bribe: 'Bribe the staff' };
+const closetRisk = () => Math.max(0.05, 0.25 - P.smarts / 500);
+const CLOSET_FOUND = 'The owner opened the closet to hang a coat. There you were.';
 let V = null; // the safe job in progress (not saved)
 
 function startSafe(job, title) {
@@ -673,15 +676,14 @@ function startSafeTest() { startSafe({ ...pick(DELACROIX_JOBS), test: true }, 'S
 // Lights the keys one by one, as if you were watching the owner's finger.
 function watchCode() {
   V.phase = 'watch';
-  const run = ++V.run, hold = 250 + P.smarts * 4, digits = V.code.split('');
-  const seq = V.job.method === 'week' ? [...digits, 'pause', ...digits] : digits;
+  const run = ++V.run, seq = V.code.split('');
+  const hold = (250 + P.smarts * 4) * (V.job.method === 'closet' ? 1.6 : 1); // up close, each key stays lit longer
   let i = 0;
   renderSafe();
   const tick = () => {
     if (!V || V.run !== run) return;
     const d = seq[i++];
     if (d === undefined) { V.phase = 'ready'; return renderSafe(); }
-    if (d === 'pause') { $('.card.safe .tell').textContent = 'Another night. Watch again.'; return setTimeout(tick, 1200); }
     const key = $(`.pad [data-key="${d}"]`);
     key.classList.add('lit');
     setTimeout(() => { key.classList.remove('lit'); setTimeout(tick, 120); }, hold);
@@ -742,16 +744,20 @@ function safeCmd(cmd) {
   if (cmd === 'quit') { V = null; return hideModal(); }
   if (cmd === 'retry') return startSafeTest();
   if (cmd === 'go') return breakIn();
-  if (METHODS[cmd] && V.phase === 'choose') { V.job.method = cmd; watchCode(); }
+  if (METHODS[cmd] && V.phase === 'choose') {
+    V.job.method = cmd;
+    if (cmd === 'closet' && chance(closetRisk())) return safeOver('found', CLOSET_FOUND);
+    watchCode();
+  }
 }
 
 function renderSafe() {
   const j = V.job, n = V.code.length, ph = V.phase, half = Math.ceil(n / 2);
   const title = { choose: 'Safe Test', watch: 'Watch Closely', ready: 'Ready?', enter: 'Crack It' }[ph]
-    || { open: 'Open!', locked: 'Locked', late: 'Too Slow', quit: 'Walked Away' }[V.result];
+    || { open: 'Open!', locked: 'Locked', late: 'Too Slow', quit: 'Walked Away', found: 'Found' }[V.result];
   const tell = {
     choose: `The safe in ${j.place} has a ${n}-digit code. How do you learn it?`,
-    watch: 'Through the binoculars you watch the owner punch in the code.',
+    watch: j.method === 'closet' ? 'Through the crack in the closet door you watch the owner punch in the code.' : 'Through the binoculars you watch the owner punch in the code.',
     ready: 'You have the code in your head. Hopefully.',
     enter: V.msg || 'Type the code. The owner is back when the clock runs out.',
   }[ph] || `${V.msg} The code was ${V.code}.`;
@@ -831,7 +837,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.8</p>`];
+      `<p class="ver">Mafiozo 0.9</p>`];
   },
 };
 

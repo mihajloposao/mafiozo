@@ -111,17 +111,20 @@ function delacroixJob(p, c, method) {
     P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
     return bad(`${job.insider.charAt(0).toUpperCase() + job.insider.slice(1)} took your money and sold you out. Someone was waiting by the safe.`, { money: -BRIBE });
   }
+  if (method === 'closet' && chance(closetRisk())) { // the owner opened the closet
+    P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
+    return bad(CLOSET_FOUND);
+  }
   return { safe: { ...job, method, end: (how, tries) => delacroixEnd(job, method, how, tries) } };
 }
 
-// First try earns the most respect, a week of watching only half. Locked or too slow leads to the `nabbed` event.
+// First try earns the most respect. Locked or too slow leads to the `nabbed` event.
 function delacroixEnd(job, method, how, tries) {
   const fee = method === 'bribe' ? { money: -BRIBE } : {};
   if (how === 'open') {
     const clean = tries === 3, respect = clean ? rnd(8, 12) : rnd(3, 6);
     const text = clean ? `Not a single wrong digit. ${job.win}` : `It took a few tries, but ${job.win.charAt(0).toLowerCase()}${job.win.slice(1)}`;
-    return joinFamily('Delacroix', `${text}${method === 'week' ? ' "A whole week, though," Madame Delacroix sighs.' : ''}`,
-      { ...fee, respect: method === 'week' ? Math.ceil(respect / 2) : respect });
+    return joinFamily('Delacroix', text, { ...fee, respect });
   }
   if (how === 'quit') return meh('You backed off before anyone saw you. Maybe next year.', fee);
   P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
@@ -297,10 +300,10 @@ const EVENTS = [
     ] },
   { id: 'delacroix', title: 'The Delacroix Test', scene: true, when: p => !p.fam,
     ctx: () => ({ job: rnd(0, DELACROIX_JOBS.length - 1) }),
-    text: (p, c) => `Dinner at Maison Delacroix. Nobody touches the food. "We hear you are clever. Show us. ${DELACROIX_JOBS[c.job].brief}" The safe has a ${DELACROIX_JOBS[c.job].digits}-digit code. Watching for a week is safer, but the Delacroix hate waiting. ${DELACROIX_JOBS[c.job].insider.charAt(0).toUpperCase() + DELACROIX_JOBS[c.job].insider.slice(1)} could give you half the code, for a price, and might talk.`,
+    text: (p, c) => `Dinner at Maison Delacroix. Nobody touches the food. "We hear you are clever. Show us. ${DELACROIX_JOBS[c.job].brief}" The safe has a ${DELACROIX_JOBS[c.job].digits}-digit code. Binoculars from across the street are safe, but you only catch a glimpse. A closet in the room gives you a close look, if nobody opens it. ${DELACROIX_JOBS[c.job].insider.charAt(0).toUpperCase() + DELACROIX_JOBS[c.job].insider.slice(1)} could give you half the code, for a price, and might talk.`,
     choices: [
-      { label: 'One night of watching', run: (p, c) => delacroixJob(p, c, 'night') },
-      { label: 'A week of watching', run: (p, c) => delacroixJob(p, c, 'week') },
+      { label: 'Binoculars across the street', run: (p, c) => delacroixJob(p, c, 'scope') },
+      { label: 'Hide in the closet', run: (p, c) => delacroixJob(p, c, 'closet') },
       { label: () => `Bribe the staff (${cash(BRIBE)})`, run: (p, c) => delacroixJob(p, c, 'bribe') },
       { label: 'Walk away', run: () => meh('"A pity. We so rarely meet anyone interesting."') },
     ] },
