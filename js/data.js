@@ -137,42 +137,42 @@ function delacroixEnd(fam, job, method, how, tries) {
 // kinds of things in it (matching a pair takes it; junk only eats the clock), their story, and the deal they offer
 // instead. Valuables add up to about 1.5 times the debt, so a sweep can cover it without every pair. `pocket` goes to you and never reaches the family; `knife` means a fight comes first.
 const DEBTORS = [
-  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 17,
+  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 15,
     plea: 'The barber is in tears. A sick daughter, hospital bills, nothing left.',
     deal: { label: 'Take the gold watch instead', take: 900, text: 'You took the watch off the barber\'s wrist. Nobody looked up.' },
     items: [
       { icon: '💵', name: 'Cash from the register', value: 600 }, { icon: '⌚', name: 'A gold watch', value: 1200 },
       { icon: '✂️', name: 'Silver shears', value: 500 }, { icon: '💍', name: 'A wedding ring', value: 700 },
       { icon: '🧴', name: 'Hair tonic', value: 0 }, { icon: '📰', name: 'Old newspapers', value: 0 }] },
-  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 17, knife: true,
+  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 15, knife: true,
     plea: 'The bookie laughs in your face and pulls a knife from under the counter.',
     deal: { label: 'Settle for the betting book', take: 1500, text: 'The bookie kept the knife. You kept the book of bets. The family can squeeze it.' },
     items: [
       { icon: '💰', name: 'A bag of cash', value: 2500 }, { icon: '💵', name: 'A roll of twenties', value: 1000 },
       { icon: '⌚', name: 'A gold watch', value: 1500 }, { icon: '💎', name: 'A loose diamond', value: 2500 },
       { icon: '🎟️', name: 'Losing tickets', value: 0 }, { icon: '🧦', name: 'Socks', value: 0 }] },
-  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 17,
+  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 15,
     plea: 'The widow says the debts died with her husband. Then her eyes go to the jewelry box.',
     deal: { label: 'Take the jewelry box', take: 1200, text: 'The widow put the jewelry box in your hands without a word.' },
     items: [
       { icon: '📿', name: 'A pearl necklace', value: 700 }, { icon: '💍', name: 'A diamond ring', value: 900 },
       { icon: '🏺', name: 'An antique vase', value: 500 }, { icon: '💵', name: 'The till', value: 200 },
       { icon: '🍞', name: 'Day-old bread', value: 0 }, { icon: '🧶', name: 'Yarn', value: 0 }] },
-  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 17,
+  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 15,
     plea: 'The bar owner slides an envelope across the bar. "A thousand if you tell them I already paid."',
     deal: { label: 'Take the $1,000 and lie for the bar', take: 0, pocket: 1000, text: 'The envelope went into your coat. On paper, the bar is paid up.' },
     items: [
       { icon: '💵', name: 'The till', value: 1000 }, { icon: '🍾', name: 'Vintage champagne', value: 700 },
       { icon: '🎸', name: 'A signed guitar', value: 1600 }, { icon: '⌚', name: 'A gold watch', value: 1200 },
       { icon: '🥜', name: 'Bar nuts', value: 0 }, { icon: '🧾', name: 'Unpaid tabs', value: 0 }] },
-  { who: 'the businessman', place: 'a penthouse in Harbor Heights', owes: 8000, time: 17,
+  { who: 'the businessman', place: 'a penthouse in Harbor Heights', owes: 8000, time: 15,
     plea: 'The businessman swears the penthouse is all show and the money is long gone.',
     deal: { label: 'Take the car keys instead', take: 4000, text: 'You drove off in the businessman\'s convertible.' },
     items: [
       { icon: '💼', name: 'A briefcase of cash', value: 4500 }, { icon: '⌚', name: 'A Swiss watch', value: 3000 },
       { icon: '🖼️', name: 'A painting', value: 2700 }, { icon: '🍷', name: 'Rare wine', value: 1800 },
       { icon: '📉', name: 'Worthless stock', value: 0 }, { icon: '🧾', name: 'Final notices', value: 0 }] },
-  { who: 'the cop', place: 'an apartment in Southside', owes: 3500, time: 17, tossFx: { heat: 10 },
+  { who: 'the cop', place: 'an apartment in Southside', owes: 3500, time: 15, tossFx: { heat: 10 },
     plea: 'The cop flashes a badge. "Think hard about who you are shaking down."',
     deal: { label: 'Trade the debt for a favor', take: 0, fx: { heat: -15 }, text: 'The cop will lose a file for you someday. The family will not love it.' },
     items: [
