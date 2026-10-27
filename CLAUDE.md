@@ -43,8 +43,14 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
    a. Joining a family on purpose (done: Volkov ring, Moretti sneaking, Delacroix safe, Castellano collecting). "Seek Out a Family" in Crime, once a year;
       each family runs approach, minigame test, verdict. The owner plans every segment before it is built: never build unasked.
-   Later segments, each planned separately: joining by chance (an offer after something memorable);
-   life inside a family (ranks associate to don, trust with the boss, family jobs, promotions).
+   Agreed order of the next segments (each planned with the owner first):
+   1. Life inside a family (most important: joining only gives a title today): yearly family jobs that reuse the
+      minigames, trust with the boss, ranks associate/soldier/capo/underboss with a promotion event each,
+      rank perks (yearly income, family lawyer), the boss takes a cut.
+   2. Joining by chance: a family notices you after something memorable (big score, won fight). Small step.
+   3. Founding your own family (b below). 4. Conflicts and the road to Don (c below).
+   Small cleanups on the way: drop the old 'family' event ("A Man in a Good Suit", only sets flags.family);
+   remove the three test rooms from Profile once the owner no longer needs them.
    b. Founding your own family: name a crew, recruit, take Velmora districts one by one (crew, gang, family); existing families see a threat.
    c. Conflicts and the road to Don for both paths: succession or coup, DA deal to testify, loyalty tests, family wars.
    Later: relationships (family members, partner, heirs, crew friends).
