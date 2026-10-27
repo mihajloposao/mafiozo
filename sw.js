@@ -1,5 +1,5 @@
 // Network-first, so a new version shows up on the next launch; the cache keeps the game playable offline.
-const CACHE = 'mafiozo-v21';
+const CACHE = 'mafiozo-v22';
 const SHELL = ['./', 'index.html', 'css/style.css', 'js/data.js', 'js/game.js', 'manifest.webmanifest', 'icons/icon.svg', 'icons/icon-192.png'];
 
 self.addEventListener('install', e => {

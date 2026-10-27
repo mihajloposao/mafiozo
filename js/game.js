@@ -292,6 +292,8 @@ const BEATS = { punch: 'grapple', grapple: 'block', block: 'punch' };
 const TELLS = { punch: 'pulls a fist back', block: 'raises both arms', grapple: 'crouches low, arms wide' };
 const WIN_TEXT = { punch: 'You caught them coming in.', grapple: 'You got past the guard and slammed them down.', block: 'You blocked and countered.' };
 const LOSE_TEXT = { punch: 'They caught you coming in.', grapple: 'They got past your guard and slammed you down.', block: 'They blocked and countered.' };
+const COUNTER = { punch: 'block', grapple: 'punch', block: 'grapple' }; // what beats each move
+const COST = { punch: 25, grapple: 30, block: 0 }; // stamina, new rules only
 const cap = s => s[0].toUpperCase() + s.slice(1);
 let F = null; // the fight in progress (not saved)
 
@@ -301,13 +303,14 @@ const brawl = (foe, name, win, lose, flee) => ({ fight: { ...(typeof foe === 'st
 function startFight(r, title) {
   const you = 40 + Math.round(P.health * 0.6);
   F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: '' };
+  if (F.v2) Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
   fightMenu();
 }
 
 function fightCard(body) {
   const bar = (label, v, max, cls) => `<div class="hp ${cls}"><span>${esc(label)}</span><b>${Math.max(0, v)}</b><i style="--v:${(Math.max(0, v) / max) * 100}%"></i></div>`;
   return `<div class="card fight" role="dialog" aria-modal="true"><p class="kicker">Round ${F.round} · Strength ${P.str}</p><h2>${esc(F.title)}</h2>
-    <div class="hps">${bar('You', F.you, F.youMax, 'me')}${bar(F.foe.name, F.them, F.foe.hp, 'foe')}</div>
+    <div class="hps">${bar('You', F.you, F.youMax, 'me')}${F.v2 ? bar('Stamina', F.stam, F.stamMax, 'stam') : ''}${bar(F.foe.name, F.them, F.foe.hp, 'foe')}</div>
     ${F.last ? `<p class="flog">${esc(F.last)}</p>` : ''}${body}</div>`;
 }
 
@@ -315,13 +318,15 @@ function fightMenu() {
   const mix = F.foe.mix, w = 14 + Math.round(P.health / 10);
   let roll = Math.random() * Object.values(mix).reduce((x, y) => x + y, 0);
   F.next = Object.keys(mix).find(k => (roll -= mix[k]) < 0) || 'punch';
+  if (F.v2) foeThinks();
   F.zone = { x: rnd(5, 95 - w), w };
   const t0 = (F.t0 = performance.now());
-  const tell = chance(P.smarts / 130) ? `${cap(F.foe.name)} ${TELLS[F.next]}.` : `You can't read ${F.foe.name}.`;
+  const shown = F.v2 ? F.shown : chance(P.smarts / 130) ? F.next : null;
+  const tell = shown ? `${cap(F.foe.name)} ${TELLS[shown]}.` : `You can't read ${F.foe.name}.`;
   showModal(fightCard(`<p class="tell">${esc(tell)}</p>
     <div class="meter"><i style="left:${F.zone.x}%;width:${w}%"></i><b id="needle"></b></div>
-    <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}</button>`).join('')}</div>
-    <p class="rules">Tap a move while the needle is in the bright zone.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch</p>
+    <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}${F.v2 ? `<small>${k === 'block' ? '+15' : `−${COST[k]}`} stamina</small>` : ''}</button>`).join('')}</div>
+    <p class="rules">Tap a move while the needle is in the bright zone.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch${F.v2 ? '<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
     <button class="ghost flee" data-do="flee">Run for it</button>`));
   const sweep = () => {
     if (!F || F.t0 !== t0) return; // the next round or the end of the fight stops this loop
@@ -335,8 +340,15 @@ const needlePos = () => { const ph = (((performance.now() - F.t0) / 1000) * F.fo
 
 function strike(me) {
   const pos = needlePos(), { x, w } = F.zone;
-  const [q, label] = pos >= x && pos <= x + w ? [1.5, 'Perfect!'] : pos >= x - 10 && pos <= x + w + 10 ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
-  const mine = Math.round((12 + P.str / 4) * q), theirs = Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * (2 - q));
+  let [q, label] = pos >= x && pos <= x + w ? [1.5, 'Perfect!'] : pos >= x - 10 && pos <= x + w + 10 ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
+  const gassed = F.v2 && F.stam < COST[me]; // too tired: the move lands at half power
+  if (gassed) label = `Gassed. ${label}`;
+  if (F.v2) {
+    F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' ? 15 : 0) + 10);
+    F.hist.push(me);
+    F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
+  }
+  const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1)), theirs = Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * (2 - q));
   const them = F.next;
   let dealt = 0, took = 0, text;
   if (me === them) {
@@ -349,6 +361,8 @@ function strike(me) {
     took = them === 'block' ? Math.round(theirs * 0.7) : theirs;
     text = LOSE_TEXT[them];
   }
+  if (F.v2 && F.feint) text += ' It was a feint.';
+  if (F.v2 && F.learned && took) text += ` ${cap(F.foe.name)} saw that coming.`;
   hitRound(dealt, took, `${label} ${text}`);
 }
 
@@ -369,11 +383,45 @@ function flee() {
 }
 
 function endFight(kind) {
+  if (F.test) { // fight test room: show the result, touch nothing in the life
+    const { title, foe, round, testFoe } = F;
+    F = null;
+    return showModal(`<div class="card ${kind === 'win' ? 'good' : 'bad'}" role="dialog" aria-modal="true"><p class="kicker">${esc(title)}</p>
+      <h2>${{ win: 'You Won', lose: 'You Lost', flee: 'You Ran' }[kind]}</h2><p>${kind === 'win' ? `You beat ${esc(foe.name)} in ${round} rounds.` : kind === 'lose' ? `${esc(cap(foe.name))} put you down in round ${round}.` : 'You ran for the door.'}</p>
+      <div class="choices"><button class="primary" data-ft="${testFoe}">Fight again</button><button class="opt" data-ft="menu">Pick another opponent</button><button class="ghost" data-ft="close">Close</button></div></div>`);
+  }
   const r = F[kind] ? F[kind](F) : meh('You ran. Your pride did not make it.', { respect: -2 });
   r.fx = { ...r.fx, health: (r.fx.health || 0) - Math.round(F.taken * 0.35) };
   const title = F.title;
   F = null;
   resolve(r, title);
+}
+
+// New rules (fight test room for now): fighters punish a move you keep repeating and sometimes fake their tell,
+// more often the more you blindly follow their tells. Smarts make tells show up more often and feints rarer.
+function foeThinks() {
+  const recent = F.hist.slice(-3), fav = Object.keys(MOVES).find(m => recent.filter(x => x === m).length >= 2);
+  F.learned = !!fav && chance(F.foe.learn || 0.4);
+  if (F.learned) F.next = COUNTER[fav];
+  F.feint = false;
+  F.shown = null;
+  if (chance((F.foe.read ?? 0.7) * (0.7 + P.smarts / 333))) {
+    F.feint = chance(Math.min(0.8, (F.foe.feint || 0.15) * (1 + F.reads) * (1 - P.smarts / 200)));
+    F.shown = F.feint ? pick(Object.keys(MOVES).filter(m => m !== F.next)) : F.next;
+  }
+}
+
+function fightTestMenu() {
+  showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Fight test</p><h2>Pick a Sparring Partner</h2>
+    <p>New rules: a tell can be a feint, fighters punish a move you keep repeating, and punching and grappling cost stamina while blocking gets it back. Strength gives you more stamina. Nothing here affects your life.</p>
+    <div class="choices">${SPARRING.map((f, i) => `<button class="opt" data-ft="${i}">${esc(cap(f.name))} · ${f.level}</button>`).join('')}<button class="ghost" data-ft="close">Close</button></div></div>`);
+}
+
+function ftCmd(v) {
+  if (v === 'close') return hideModal();
+  if (v === 'menu') return fightTestMenu();
+  const f = SPARRING[+v];
+  startFight({ ...brawl(f, f.name), v2: true, test: true, testFoe: v }, 'Fight Test');
 }
 
 // ---------- sneaking (turn-based) ----------
@@ -937,8 +985,8 @@ const SHEETS = {
       ['Crimes committed', P.tally.crimes], ['Arrests', P.tally.arrests], ['Years inside', P.tally.served],
     ];
     return ['Profile', facts(rows) +
-      `<div class="list"><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.12</p>`];
+      `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
+      `<p class="ver">Mafiozo 0.13</p>`];
   },
 };
 
@@ -1034,6 +1082,7 @@ const DO = {
   sneakTest() { closeSheet(); startSneak({ room: SNEAK_TEST }); },
   safeTest() { closeSheet(); startSafeTest(); },
   memoryTest() { closeSheet(); startMemoryTest(); },
+  fightTest() { closeSheet(); fightTestMenu(); },
   flee,
   askRestart() {
     $('#restart').innerHTML = `<p class="hint">End ${esc(P.first)}'s life for good?</p><div class="row"><button class="danger" data-do="restart">Yes, start over</button><button class="ghost" data-close>Keep playing</button></div>`;
@@ -1063,6 +1112,7 @@ document.addEventListener('click', e => {
   else if (d.sf) safeCmd(d.sf);
   else if (d.card) memFlip(+d.card);
   else if (d.mm) memCmd(d.mm);
+  else if (d.ft) ftCmd(d.ft);
   else if ('choice' in d) choose(+d.choice);
   else if ('close' in d) closeSheet();
   else if (d.do) DO[d.do]();

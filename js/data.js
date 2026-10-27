@@ -70,6 +70,14 @@ const FOES = {
   brute: { hp: 80, pow: 21, spd: 1.3, mix: { punch: 3, block: 1, grapple: 1 } },
 };
 
+// Sparring partners for the fight test room (new fight rules): how often they fake their tell (`feint`)
+// how readily they punish a move you keep repeating (`learn`), and how easy their tells are to spot (`read`).
+const SPARRING = [
+  { name: 'a street thug', level: 'Easy', hp: 60, pow: 14, spd: 1.0, read: 0.9, feint: 0.1, learn: 0.3, mix: { punch: 1, block: 1, grapple: 1 } },
+  { name: 'a club bouncer', level: 'Medium', hp: 115, pow: 21, spd: 1.2, read: 0.55, feint: 0.25, learn: 0.5, mix: { punch: 2, block: 1, grapple: 1 } },
+  { name: 'Viktor the Bear', level: 'Hard', hp: 140, pow: 25, spd: 1.4, read: 0.45, feint: 0.3, learn: 0.7, mix: { punch: 2, block: 1, grapple: 2 } },
+];
+
 // Sneaking rooms for the turn-based minigame. Map rows run top to bottom:
 // # wall, B desk or cabinet (blocks sight), . floor, S front door, R back way, * target, $ bonus.
 // Nobody can see into a doorway, so waiting at the door is always safe.
