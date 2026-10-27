@@ -17,7 +17,7 @@ const FAMILY_INFO = {
   Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.', scene: 'moretti' },
   Volkov: { rumor: 'With the Russians, only your fists talk.', scene: 'volkov' },
   Delacroix: { rumor: 'The Delacroix have no patience for fools.', scene: 'delacroix' },
-  Castellano: { rumor: 'With the Castellanos, everything has a price.' },
+  Castellano: { rumor: 'With the Castellanos, everything has a price.', scene: 'castellano' },
 };
 const FAM_RANKS = ['Associate', 'Soldier', 'Capo', 'Underboss', 'Don'];
 
@@ -131,26 +131,106 @@ function delacroixEnd(job, method, how, tries) {
   return bad(how === 'locked' ? 'The safe locked itself and an alarm went off.' : 'The owner walked in on you.', fee);
 }
 
-// Debtors for the Castellano test (memory minigame): what they owe, seconds to sweep the place, and the six
-// kinds of things in it. Matching a pair takes it; junk is worth nothing and only eats the clock.
+// The Castellano test: debtors in the notebook. What they owe, seconds to sweep their place (memory minigame), the six
+// kinds of things in it (matching a pair takes it; junk only eats the clock), their story, and the deal they offer
+// instead. `pocket` goes to you and never reaches the Castellanos; `knife` means a fight comes first.
 const DEBTORS = [
-  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 20, items: [
-    { icon: '💵', name: 'Cash from the register', value: 400 }, { icon: '⌚', name: 'A gold watch', value: 900 },
-    { icon: '✂️', name: 'Silver shears', value: 300 }, { icon: '💍', name: 'A wedding ring', value: 600 },
-    { icon: '🧴', name: 'Hair tonic', value: 0 }, { icon: '📰', name: 'Old newspapers', value: 0 }] },
-  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 20, items: [
-    { icon: '💰', name: 'A bag of cash', value: 1500 }, { icon: '💵', name: 'A roll of twenties', value: 500 },
-    { icon: '⌚', name: 'A gold watch', value: 1200 }, { icon: '💎', name: 'A loose diamond', value: 2000 },
-    { icon: '🎟️', name: 'Losing tickets', value: 0 }, { icon: '🧦', name: 'Socks', value: 0 }] },
-  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 20, items: [
-    { icon: '📿', name: 'A pearl necklace', value: 700 }, { icon: '💍', name: 'A diamond ring', value: 900 },
-    { icon: '🏺', name: 'An antique vase', value: 500 }, { icon: '💵', name: 'The till', value: 200 },
-    { icon: '🍞', name: 'Day-old bread', value: 0 }, { icon: '🧶', name: 'Yarn', value: 0 }] },
-  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 20, items: [
-    { icon: '💵', name: 'The till', value: 600 }, { icon: '🍾', name: 'Vintage champagne', value: 400 },
-    { icon: '🎸', name: 'A signed guitar', value: 1100 }, { icon: '⌚', name: 'A gold watch', value: 1000 },
-    { icon: '🥜', name: 'Bar nuts', value: 0 }, { icon: '🧾', name: 'Unpaid tabs', value: 0 }] },
+  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 17,
+    plea: 'The barber is in tears. A sick daughter, hospital bills, nothing left.',
+    deal: { label: 'Take the gold watch instead', take: 900, text: 'You took the watch off the barber\'s wrist. Nobody looked up.' },
+    items: [
+      { icon: '💵', name: 'Cash from the register', value: 400 }, { icon: '⌚', name: 'A gold watch', value: 900 },
+      { icon: '✂️', name: 'Silver shears', value: 300 }, { icon: '💍', name: 'A wedding ring', value: 600 },
+      { icon: '🧴', name: 'Hair tonic', value: 0 }, { icon: '📰', name: 'Old newspapers', value: 0 }] },
+  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 17, knife: true,
+    plea: 'The bookie laughs in your face and pulls a knife from under the counter.',
+    deal: { label: 'Settle for the betting book', take: 1500, text: 'The bookie kept the knife. You kept the book of bets. The Castellanos can squeeze it.' },
+    items: [
+      { icon: '💰', name: 'A bag of cash', value: 1500 }, { icon: '💵', name: 'A roll of twenties', value: 500 },
+      { icon: '⌚', name: 'A gold watch', value: 1200 }, { icon: '💎', name: 'A loose diamond', value: 2000 },
+      { icon: '🎟️', name: 'Losing tickets', value: 0 }, { icon: '🧦', name: 'Socks', value: 0 }] },
+  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 17,
+    plea: 'The widow says the debts died with her husband. Then her eyes go to the jewelry box.',
+    deal: { label: 'Take the jewelry box', take: 1200, text: 'The widow put the jewelry box in your hands without a word.' },
+    items: [
+      { icon: '📿', name: 'A pearl necklace', value: 700 }, { icon: '💍', name: 'A diamond ring', value: 900 },
+      { icon: '🏺', name: 'An antique vase', value: 500 }, { icon: '💵', name: 'The till', value: 200 },
+      { icon: '🍞', name: 'Day-old bread', value: 0 }, { icon: '🧶', name: 'Yarn', value: 0 }] },
+  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 17,
+    plea: 'The bar owner slides an envelope across the bar. "A thousand if you tell them I already paid."',
+    deal: { label: 'Take the $1,000 and lie for the bar', take: 0, pocket: 1000, text: 'The envelope went into your coat. On paper, the bar is paid up.' },
+    items: [
+      { icon: '💵', name: 'The till', value: 600 }, { icon: '🍾', name: 'Vintage champagne', value: 400 },
+      { icon: '🎸', name: 'A signed guitar', value: 1100 }, { icon: '⌚', name: 'A gold watch', value: 1000 },
+      { icon: '🥜', name: 'Bar nuts', value: 0 }, { icon: '🧾', name: 'Unpaid tabs', value: 0 }] },
+  { who: 'the businessman', place: 'a penthouse in Harbor Heights', owes: 8000, time: 17,
+    plea: 'The businessman swears the penthouse is all show and the money is long gone.',
+    deal: { label: 'Take the car keys instead', take: 4000, text: 'You drove off in the businessman\'s convertible.' },
+    items: [
+      { icon: '💼', name: 'A briefcase of cash', value: 3000 }, { icon: '⌚', name: 'A Swiss watch', value: 2000 },
+      { icon: '🖼️', name: 'A painting', value: 1800 }, { icon: '🍷', name: 'Rare wine', value: 1200 },
+      { icon: '📉', name: 'Worthless stock', value: 0 }, { icon: '🧾', name: 'Final notices', value: 0 }] },
+  { who: 'the cop', place: 'an apartment in Southside', owes: 3500, time: 17, tossFx: { heat: 10 },
+    plea: 'The cop flashes a badge. "Think hard about who you are shaking down."',
+    deal: { label: 'Trade the debt for a favor', take: 0, fx: { heat: -15 }, text: 'The cop will lose a file for you someday. The Castellanos will not love it.' },
+    items: [
+      { icon: '💵', name: 'An envelope of bribes', value: 2000 }, { icon: '⌚', name: 'A gold watch', value: 900 },
+      { icon: '📻', name: 'A police scanner', value: 400 }, { icon: '🏅', name: 'A medal', value: 300 },
+      { icon: '🍩', name: 'Donuts', value: 0 }, { icon: '📰', name: 'The sports pages', value: 0 }] },
 ];
+
+// The night of collecting lives in P.collect: three debtors in a row, then the hand-over at dawn.
+function castellanoStart(p) {
+  p.done.seek = true;
+  const list = DEBTORS.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, 3);
+  P.collect = { list, i: 0, owed: list.reduce((sum, d) => sum + DEBTORS[d].owes, 0), got: 0, pocket: 0, lied: false };
+  P.pending.unshift({ id: 'debtor', c: { d: list[0] } });
+  return meh(`Three names: ${list.map(d => DEBTORS[d].who).join(', ')}. ${cash(P.collect.owed)} in all, by morning.`);
+}
+
+function nextDebtor() {
+  const n = P.collect;
+  if (!n) return;
+  n.i++;
+  P.pending.unshift(n.i < n.list.length ? { id: 'debtor', c: { d: n.list[n.i] } } : { id: 'handover', c: {} });
+}
+
+function collected(d, taken, text, fx = {}) {
+  if (P.collect) P.collect.got += taken;
+  nextDebtor();
+  return (taken >= DEBTORS[d].owes ? ok : taken ? meh : bad)(text, fx);
+}
+
+const memJob = d => ({ ...DEBTORS[d], end: (how, taken) => collected(d, taken,
+  `${{ all: 'You cleaned the place out.', late: 'You ran out of time.', quit: 'You walked out.' }[how]} ${cash(taken)} of the ${cash(DEBTORS[d].owes)} ${DEBTORS[d].who} owed.`,
+  DEBTORS[d].tossFx) });
+
+function takeDeal(d) {
+  const deal = DEBTORS[d].deal;
+  if (deal.pocket && P.collect) Object.assign(P.collect, { pocket: P.collect.pocket + deal.pocket, lied: true });
+  return collected(d, deal.take, deal.text, deal.fx);
+}
+
+function knifeFight(d) {
+  return brawl('thug', 'the bookie',
+    () => { P.pending.unshift({ id: 'sweep', c: { d } }); return ok('You twisted the knife out of the bookie\'s hand.', { respect: rnd(2, 4) }); },
+    () => { nextDebtor(); return bad('The bookie cut you and threw you out into the street.', {}, 'Stabbed by a bookie'); },
+    () => { nextDebtor(); return meh('You backed out the door. Nothing from the bookie tonight.'); });
+}
+
+// Three quarters of the notebook gets you in. Skimming or lying for a debtor can be found out; smarts cook the books.
+function castellanoVerdict(p, share) {
+  const n = P.collect;
+  delete P.collect;
+  if (!n) return meh('The capo has no idea what you are talking about.');
+  const kept = Math.round(n.got * share), given = n.got - kept, pocket = kept + n.pocket;
+  const risk = (share ? share * 1.5 + 0.2 : 0) + (n.lied ? 0.3 : 0) - p.smarts / 300;
+  if ((share || n.lied) && chance(Math.max(0.05, risk))) {
+    return bad('The capo counted twice and found the hole. The Castellanos do not forgive thieves.', { health: -rnd(20, 35), respect: -5 }, 'Beaten to death for skimming from the Castellanos');
+  }
+  if (given >= n.owed * 0.75) return joinFamily('Castellano', `You put ${cash(given)} on the desk. The capo counts it twice and smiles.`, { money: pocket, respect: rnd(6, 10) });
+  return meh(`${cash(given)} of ${cash(n.owed)}. "Come back when you know how to earn."`, { money: pocket });
+}
 
 // The Moretti test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
 // `shiftMoves` how long until the next shift arrives. `caughtBy` decides who has you if it goes wrong.
@@ -327,6 +407,32 @@ const EVENTS = [
       { label: 'Hide in the closet', run: (p, c) => delacroixJob(p, c, 'closet') },
       { label: () => `Bribe the staff (${cash(BRIBE)})`, run: (p, c) => delacroixJob(p, c, 'bribe') },
       { label: 'Walk away', run: () => meh('"A pity. We so rarely meet anyone interesting."') },
+    ] },
+  { id: 'castellano', title: 'The Castellano Test', scene: true, when: p => !p.fam,
+    text: () => 'The back office of the Castellano casino on the Strip smells of cigars and money. "With us, everything has a price. Show us you can earn." The capo slides a notebook across the desk: three names, three debts, due by morning. Bring at least three quarters of it, and do not even think about short-changing us.',
+    choices: [
+      { label: 'Take the notebook', run: p => castellanoStart(p) },
+      { label: 'Walk away', run: () => meh('"Suit yourself. Money waits for no one."') },
+    ] },
+  { id: 'debtor', title: 'A Name in the Notebook', scene: true, when: () => true,
+    text: (p, c) => `${cap(DEBTORS[c.d].place)}. ${cap(DEBTORS[c.d].who)} owes ${cash(DEBTORS[c.d].owes)}. ${DEBTORS[c.d].plea}`,
+    choices: [
+      { label: (p, c) => (DEBTORS[c.d].knife ? 'Take the knife away' : 'Toss the place'), run: (p, c) => (DEBTORS[c.d].knife ? knifeFight(c.d) : { memory: memJob(c.d) }) },
+      { label: (p, c) => DEBTORS[c.d].deal.label, run: (p, c) => takeDeal(c.d) },
+      { label: 'Walk away', run: (p, c) => collected(c.d, 0, `You left ${DEBTORS[c.d].who} alone. Nothing for that name.`) },
+    ] },
+  { id: 'sweep', title: 'Toss the Place', scene: true, when: () => true,
+    text: (p, c) => `Nobody is stopping you now. Find what ${DEBTORS[c.d].who} is hiding.`,
+    choices: [{ label: 'Start looking', run: (p, c) => ({ memory: memJob(c.d) }) }] },
+  { id: 'handover', title: 'Back at the Casino', scene: true, when: () => true,
+    text: () => {
+      const n = P.collect || { got: 0, owed: 0, pocket: 0 };
+      return `Dawn. You collected ${cash(n.got)} of the ${cash(n.owed)} in the notebook${n.pocket ? `, and ${cash(n.pocket)} went into your own pocket on the side` : ''}. The capo is already counting.`;
+    },
+    choices: [
+      { label: 'Hand over every dollar', run: p => castellanoVerdict(p, 0) },
+      { label: 'Keep 10% for yourself', run: p => castellanoVerdict(p, 0.1) },
+      { label: 'Keep 30% for yourself', run: p => castellanoVerdict(p, 0.3) },
     ] },
   { id: 'nabbed', title: 'Caught', scene: true, when: () => true,
     text: (p, c) => (c.by === 'mob' ? 'Two of their men have you pinned against the wall.' : 'A cop has you by the collar. Backup is two minutes out.'),

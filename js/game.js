@@ -244,7 +244,7 @@ function choose(i) {
 }
 
 // An outcome either resolves right away or starts a fight first.
-const play = (r, title) => (r.fight ? startFight(r, title) : r.sneak ? startSneak(r.sneak, title) : r.safe ? startSafe(r.safe, title) : resolve(r, title));
+const play = (r, title) => (r.fight ? startFight(r, title) : r.sneak ? startSneak(r.sneak, title) : r.safe ? startSafe(r.safe, title) : r.memory ? startMemory(r.memory, title) : resolve(r, title));
 
 function resolve(r, title) {
   const fx = applyFx(r.fx);
@@ -846,8 +846,16 @@ function memOver(how, msg) {
 }
 
 function memCmd(cmd) {
+  if (cmd === 'done') { // a real job: hand the haul back to the life
+    const { job, title, result, taken } = M;
+    M = null;
+    hideModal();
+    const r = job.end(result, taken);
+    return r ? resolve(r, title) : nextEvent();
+  }
   if (cmd === 'start') return memStart();
   if (cmd === 'retry') return startMemoryTest();
+  if (cmd === 'quit' && M.job.end && M.phase !== 'over') return memOver('quit', 'You walked out with what you had.');
   if (cmd === 'quit') { M = null; hideModal(); }
 }
 
@@ -861,10 +869,10 @@ function renderMemory() {
     : ph === 'play' ? M.msg || 'Every pair you match, you take.' : `${M.msg} You took ${cash(M.taken)} of the ${cash(j.owes)} owed.`;
   const controls = ph === 'intro' ? '<button class="primary" data-mm="start">Start</button><button class="ghost" data-mm="quit">Quit</button>'
     : ph === 'play' ? '<button class="ghost" data-mm="quit">Quit</button>'
-    : '<button class="primary" data-mm="retry">Try again</button><button class="ghost" data-mm="quit">Close</button>';
+    : j.end ? '<button class="primary" data-mm="done">Continue</button>' : '<button class="primary" data-mm="retry">Try again</button><button class="ghost" data-mm="quit">Close</button>';
   showModal(`<div class="card memo ${ph === 'over' ? (M.taken >= j.owes ? 'good' : 'bad') : ''}" role="dialog" aria-modal="true">
     <p class="kicker">${esc(M.title)} · ${esc(j.place)}</p>
-    <h2>${ph === 'over' ? (M.result === 'all' ? 'Cleaned Out' : 'Time\'s Up') : 'Clean the Place Out'}</h2><p class="tell">${esc(tell)}</p>
+    <h2>${ph === 'over' ? { all: 'Cleaned Out', late: 'Time\'s Up', quit: 'Walked Out' }[M.result] : 'Clean the Place Out'}</h2><p class="tell">${esc(tell)}</p>
     <p class="haul">${cash(M.taken)} <small>of ${cash(j.owes)}</small></p>
     ${ph === 'play' ? '<div class="clock"><i></i></div>' : ''}
     <div class="mgrid">${cards}</div>
@@ -930,7 +938,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.10</p>`];
+      `<p class="ver">Mafiozo 0.11</p>`];
   },
 };
 

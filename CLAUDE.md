@@ -22,7 +22,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Families: no visible requirements, only street rumors; each test picks a random variant (venue, opponent, place).
   Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the Moretti test, test room in Profile.
   Safe minigame (memory keypad): `startSafe(job, title)`; used by the Delacroix test (DELACROIX_JOBS: method scope/closet/bribe), test room in Profile.
-  Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; test room in Profile (planned for Castellano).
+  Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; used by the Castellano test, test room in Profile.
+  Castellano night: P.collect holds the notebook (3 DEBTORS); events debtor/sweep/handover; skimming or lying for a debtor can be found out.
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
   the alarm wakes a knocked-out guard. Arrows (next move) always show; route dots only with smarts 65+.
   Endings: win (clean), loud (out with the target after an alarm), fled (out without it), caught.
@@ -39,8 +40,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 ## Roadmap
 1. Phase 1 (done): life loop, stats, crimes, heat, prison, jobs, ~20 events, death, save.
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
-   a. Joining a family on purpose (in progress: Volkov ring, Moretti sneaking and Delacroix safe done;
-      next Castellano collecting from three random debtors). "Seek Out a Family" in Crime, once a year;
+   a. Joining a family on purpose (done: Volkov ring, Moretti sneaking, Delacroix safe, Castellano collecting). "Seek Out a Family" in Crime, once a year;
       each family runs approach, minigame test, verdict. The owner plans every segment before it is built: never build unasked.
    Later segments, each planned separately: joining by chance (an offer after something memorable);
    life inside a family (ranks associate to don, trust with the boss, family jobs, promotions).
