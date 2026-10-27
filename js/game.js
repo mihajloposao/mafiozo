@@ -780,6 +780,90 @@ function renderSafe() {
   modal.querySelector('[data-sf]:not([data-sf=quit])')?.focus();
 }
 
+// ---------- collecting (memory) ----------
+// The debtor swears there is nothing left, so you sweep the place. All cards start face down; flip two at a time
+// and take every pair you match. Junk is worth nothing and only eats the clock. Smarts buy a few extra seconds.
+let M = null; // the sweep in progress (not saved)
+
+function startMemory(job, title) {
+  const cards = job.items.flatMap((_, i) => [i, i]);
+  for (let i = cards.length - 1; i > 0; i--) { const k = rnd(0, i); [cards[i], cards[k]] = [cards[k], cards[i]]; }
+  M = { job, title, cards, done: cards.map(() => false), open: [], taken: 0, phase: 'intro', msg: '', run: 0,
+    time: job.time + Math.round(P.smarts / 10) };
+  renderMemory();
+}
+
+function startMemoryTest() { startMemory({ ...pick(DEBTORS), test: true }, 'Memory Test'); }
+
+function memStart() {
+  M.phase = 'play';
+  M.deadline = performance.now() + M.time * 1000;
+  const run = ++M.run;
+  renderMemory();
+  const tick = () => {
+    if (!M || M.run !== run) return;
+    const left = (M.deadline - performance.now()) / (M.time * 1000);
+    if (left <= 0) return memOver('late', 'Time is up. Somebody called the cops.');
+    const clock = $('.clock');
+    if (clock) { clock.firstChild.style.width = `${left * 100}%`; clock.classList.toggle('low', left < 0.3); }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+}
+
+function memFlip(i) {
+  if (!M || M.phase !== 'play' || M.lock || M.done[i] || M.open.includes(i)) return;
+  M.open.push(i);
+  if (M.open.length === 2) {
+    const [a, b] = M.open;
+    if (M.cards[a] === M.cards[b]) {
+      const it = M.job.items[M.cards[a]];
+      M.done[a] = M.done[b] = true;
+      M.open = [];
+      M.taken += it.value;
+      M.msg = it.value ? `${it.name}. +${cash(it.value)}` : `${it.name}. Worthless.`;
+      if (M.done.every(Boolean)) return memOver('all', 'You cleaned the place out.');
+    } else {
+      M.lock = true; // let the player see the miss before the cards turn back
+      const run = M.run;
+      setTimeout(() => { if (!M || M.run !== run) return; M.open = []; M.lock = false; renderMemory(); }, 700);
+    }
+  }
+  renderMemory();
+}
+
+function memOver(how, msg) {
+  Object.assign(M, { phase: 'over', result: how, msg, run: M.run + 1, lock: false });
+  renderMemory();
+}
+
+function memCmd(cmd) {
+  if (cmd === 'start') return memStart();
+  if (cmd === 'retry') return startMemoryTest();
+  if (cmd === 'quit') { M = null; hideModal(); }
+}
+
+function renderMemory() {
+  const j = M.job, ph = M.phase;
+  const cards = M.cards.map((k, i) => {
+    const it = j.items[k], up = ph === 'over' || M.done[i] || M.open.includes(i);
+    return `<button class="mc${up ? ' up' : ''}${M.done[i] ? ' got' : ''}" data-card="${i}" aria-label="${up ? esc(it.name) : 'Hidden'}">${up ? `${it.icon}<small>${it.value ? cash(it.value) : 'junk'}</small>` : '?'}</button>`;
+  }).join('');
+  const tell = ph === 'intro' ? `${cap(j.who)} owes ${cash(j.owes)} and swears there is nothing left. Flip two at a time; every pair you match, you take. You have ${M.time} seconds.`
+    : ph === 'play' ? M.msg || 'Every pair you match, you take.' : `${M.msg} You took ${cash(M.taken)} of the ${cash(j.owes)} owed.`;
+  const controls = ph === 'intro' ? '<button class="primary" data-mm="start">Start</button><button class="ghost" data-mm="quit">Quit</button>'
+    : ph === 'play' ? '<button class="ghost" data-mm="quit">Quit</button>'
+    : '<button class="primary" data-mm="retry">Try again</button><button class="ghost" data-mm="quit">Close</button>';
+  showModal(`<div class="card memo ${ph === 'over' ? (M.taken >= j.owes ? 'good' : 'bad') : ''}" role="dialog" aria-modal="true">
+    <p class="kicker">${esc(M.title)} · ${esc(j.place)}</p>
+    <h2>${ph === 'over' ? (M.result === 'all' ? 'Cleaned Out' : 'Time\'s Up') : 'Clean Him Out'}</h2><p class="tell">${esc(tell)}</p>
+    <p class="haul">${cash(M.taken)} <small>of ${cash(j.owes)}</small></p>
+    ${ph === 'play' ? '<div class="clock"><i></i></div>' : ''}
+    <div class="mgrid">${cards}</div>
+    <div class="row sctl">${controls}</div></div>`);
+  modal.querySelector('[data-mm=start], [data-mm=retry]')?.focus();
+}
+
 // ---------- screens ----------
 
 const app = $('#app');
@@ -836,8 +920,8 @@ const SHEETS = {
       ['Crimes committed', P.tally.crimes], ['Arrests', P.tally.arrests], ['Years inside', P.tally.served],
     ];
     return ['Profile', facts(rows) +
-      `<div class="list"><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.9</p>`];
+      `<div class="list"><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
+      `<p class="ver">Mafiozo 0.10</p>`];
   },
 };
 
@@ -932,6 +1016,7 @@ const DO = {
   randomize,
   sneakTest() { closeSheet(); startSneak({ room: SNEAK_TEST }); },
   safeTest() { closeSheet(); startSafeTest(); },
+  memoryTest() { closeSheet(); startMemoryTest(); },
   flee,
   askRestart() {
     $('#restart').innerHTML = `<p class="hint">End ${esc(P.first)}'s life for good?</p><div class="row"><button class="danger" data-do="restart">Yes, start over</button><button class="ghost" data-close>Keep playing</button></div>`;
@@ -959,6 +1044,8 @@ document.addEventListener('click', e => {
   else if (d.sn) sneakCmd(d.sn);
   else if (d.key) safeKey(d.key);
   else if (d.sf) safeCmd(d.sf);
+  else if (d.card) memFlip(+d.card);
+  else if (d.mm) memCmd(d.mm);
   else if ('choice' in d) choose(+d.choice);
   else if ('close' in d) closeSheet();
   else if (d.do) DO[d.do]();

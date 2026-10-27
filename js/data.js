@@ -131,6 +131,27 @@ function delacroixEnd(job, method, how, tries) {
   return bad(how === 'locked' ? 'The safe locked itself and an alarm went off.' : 'The owner walked in on you.', fee);
 }
 
+// Debtors for the Castellano test (memory minigame): what they owe, seconds to sweep the place, and the six
+// kinds of things in it. Matching a pair takes it; junk is worth nothing and only eats the clock.
+const DEBTORS = [
+  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 30, items: [
+    { icon: '💵', name: 'Cash from the register', value: 400 }, { icon: '⌚', name: 'A gold watch', value: 900 },
+    { icon: '✂️', name: 'Silver shears', value: 300 }, { icon: '💍', name: 'A wedding ring', value: 600 },
+    { icon: '🧴', name: 'Hair tonic', value: 0 }, { icon: '📰', name: 'Old newspapers', value: 0 }] },
+  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 30, items: [
+    { icon: '💰', name: 'A bag of cash', value: 1500 }, { icon: '💵', name: 'A roll of twenties', value: 500 },
+    { icon: '⌚', name: 'A gold watch', value: 1200 }, { icon: '💎', name: 'A loose diamond', value: 2000 },
+    { icon: '🎟️', name: 'Losing tickets', value: 0 }, { icon: '🧦', name: 'Socks', value: 0 }] },
+  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 30, items: [
+    { icon: '📿', name: 'A pearl necklace', value: 700 }, { icon: '💍', name: 'A diamond ring', value: 900 },
+    { icon: '🏺', name: 'An antique vase', value: 500 }, { icon: '💵', name: 'The till', value: 200 },
+    { icon: '🍞', name: 'Day-old bread', value: 0 }, { icon: '🧶', name: 'Yarn', value: 0 }] },
+  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 30, items: [
+    { icon: '💵', name: 'The till', value: 600 }, { icon: '🍾', name: 'Vintage champagne', value: 400 },
+    { icon: '🎸', name: 'A signed guitar', value: 1100 }, { icon: '⌚', name: 'A gold watch', value: 1000 },
+    { icon: '🥜', name: 'Bar nuts', value: 0 }, { icon: '🧾', name: 'Unpaid tabs', value: 0 }] },
+];
+
 // The Moretti test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
 // `shiftMoves` how long until the next shift arrives. `caughtBy` decides who has you if it goes wrong.
 const MORETTI_JOBS = [

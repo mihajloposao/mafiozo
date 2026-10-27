@@ -22,6 +22,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Families: no visible requirements, only street rumors; each test picks a random variant (venue, opponent, place).
   Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the Moretti test, test room in Profile.
   Safe minigame (memory keypad): `startSafe(job, title)`; used by the Delacroix test (DELACROIX_JOBS: method scope/closet/bribe), test room in Profile.
+  Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; test room in Profile (planned for Castellano).
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
   the alarm wakes a knocked-out guard. Arrows (next move) always show; route dots only with smarts 65+.
   Endings: win (clean), loud (out with the target after an alarm), fled (out without it), caught.
