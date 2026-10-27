@@ -789,7 +789,7 @@ function startMemory(job, title) {
   const cards = job.items.flatMap((_, i) => [i, i]);
   for (let i = cards.length - 1; i > 0; i--) { const k = rnd(0, i); [cards[i], cards[k]] = [cards[k], cards[i]]; }
   M = { job, title, cards, done: cards.map(() => false), open: [], taken: 0, phase: 'intro', msg: '', run: 0,
-    time: job.time + Math.round(P.smarts / 10) };
+    time: job.time + Math.round(P.smarts / 20) };
   renderMemory();
 }
 
@@ -811,25 +811,33 @@ function memStart() {
   requestAnimationFrame(tick);
 }
 
+// Flips happen in place (no re-render) so the cards can animate: turn over, pop on a match, shake on a miss.
 function memFlip(i) {
   if (!M || M.phase !== 'play' || M.lock || M.done[i] || M.open.includes(i)) return;
+  const el = n => modal.querySelector(`[data-card="${n}"]`);
   M.open.push(i);
-  if (M.open.length === 2) {
-    const [a, b] = M.open;
-    if (M.cards[a] === M.cards[b]) {
-      const it = M.job.items[M.cards[a]];
-      M.done[a] = M.done[b] = true;
-      M.open = [];
-      M.taken += it.value;
-      M.msg = it.value ? `${it.name}. +${cash(it.value)}` : `${it.name}. Worthless.`;
-      if (M.done.every(Boolean)) return memOver('all', 'You cleaned the place out.');
-    } else {
-      M.lock = true; // let the player see the miss before the cards turn back
-      const run = M.run;
-      setTimeout(() => { if (!M || M.run !== run) return; M.open = []; M.lock = false; renderMemory(); }, 700);
-    }
+  el(i).classList.add('up');
+  if (M.open.length < 2) return;
+  const [a, b] = M.open, run = M.run, live = () => M && M.run === run;
+  M.open = [];
+  M.lock = true; // no more flips until this pair is settled
+  if (M.cards[a] === M.cards[b]) {
+    const it = M.job.items[M.cards[a]];
+    M.done[a] = M.done[b] = true;
+    M.taken += it.value;
+    M.msg = it.value ? `${it.name}. +${cash(it.value)}` : `${it.name}. Worthless.`;
+    setTimeout(() => {
+      if (!live()) return;
+      [a, b].forEach(n => el(n).classList.add('got'));
+      M.lock = false;
+      modal.querySelector('.haul').innerHTML = `${cash(M.taken)} <small>of ${cash(M.job.owes)}</small>`;
+      modal.querySelector('.card.memo .tell').textContent = M.msg;
+      if (M.done.every(Boolean)) setTimeout(() => live() && memOver('all', 'You cleaned the place out.'), 500);
+    }, 350);
+  } else {
+    setTimeout(() => live() && [a, b].forEach(n => el(n).classList.add('miss')), 350);
+    setTimeout(() => { if (!live()) return; [a, b].forEach(n => el(n).classList.remove('up', 'miss')); M.lock = false; }, 1000);
   }
-  renderMemory();
 }
 
 function memOver(how, msg) {
@@ -846,8 +854,8 @@ function memCmd(cmd) {
 function renderMemory() {
   const j = M.job, ph = M.phase;
   const cards = M.cards.map((k, i) => {
-    const it = j.items[k], up = ph === 'over' || M.done[i] || M.open.includes(i);
-    return `<button class="mc${up ? ' up' : ''}${M.done[i] ? ' got' : ''}" data-card="${i}" aria-label="${up ? esc(it.name) : 'Hidden'}">${up ? `${it.icon}<small>${it.value ? cash(it.value) : 'junk'}</small>` : '?'}</button>`;
+    const it = j.items[k], up = M.done[i] || M.open.includes(i);
+    return `<button class="mc${up ? ' up' : ''}${M.done[i] ? ' got' : ''}" data-card="${i}" aria-label="Card ${i + 1}"><span class="mc-in"><span class="face back">?</span><span class="face front">${it.icon}<small>${it.value ? cash(it.value) : 'junk'}</small></span></span></button>`;
   }).join('');
   const tell = ph === 'intro' ? `${cap(j.who)} owes ${cash(j.owes)} and swears there is nothing left. Flip two at a time; every pair you match, you take. You have ${M.time} seconds.`
     : ph === 'play' ? M.msg || 'Every pair you match, you take.' : `${M.msg} You took ${cash(M.taken)} of the ${cash(j.owes)} owed.`;
@@ -856,12 +864,13 @@ function renderMemory() {
     : '<button class="primary" data-mm="retry">Try again</button><button class="ghost" data-mm="quit">Close</button>';
   showModal(`<div class="card memo ${ph === 'over' ? (M.taken >= j.owes ? 'good' : 'bad') : ''}" role="dialog" aria-modal="true">
     <p class="kicker">${esc(M.title)} · ${esc(j.place)}</p>
-    <h2>${ph === 'over' ? (M.result === 'all' ? 'Cleaned Out' : 'Time\'s Up') : 'Clean Him Out'}</h2><p class="tell">${esc(tell)}</p>
+    <h2>${ph === 'over' ? (M.result === 'all' ? 'Cleaned Out' : 'Time\'s Up') : 'Clean the Place Out'}</h2><p class="tell">${esc(tell)}</p>
     <p class="haul">${cash(M.taken)} <small>of ${cash(j.owes)}</small></p>
     ${ph === 'play' ? '<div class="clock"><i></i></div>' : ''}
     <div class="mgrid">${cards}</div>
     <div class="row sctl">${controls}</div></div>`);
   modal.querySelector('[data-mm=start], [data-mm=retry]')?.focus();
+  if (ph === 'over') modal.querySelectorAll('.mc:not(.up)').forEach((el, k) => setTimeout(() => el.classList.add('up'), 250 + k * 80)); // show what you missed
 }
 
 // ---------- screens ----------
