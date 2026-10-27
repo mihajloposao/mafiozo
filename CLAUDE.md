@@ -18,12 +18,13 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Keep it simple: five stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one tap per fight round.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
-  `scene: true` events never roll at random; they run when started (Seek Out a Family uses FAMILY_INFO[name].scene).
-  Families: no visible requirements, only street rumors; each test picks a random variant (venue, opponent, place).
-  Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the Moretti test, test room in Profile.
-  Safe minigame (memory keypad): `startSafe(job, title)`; used by the Delacroix test (DELACROIX_JOBS: method scope/closet/bribe), test room in Profile.
-  Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; used by the Castellano test, test room in Profile.
-  Castellano night: P.collect holds the notebook (3 DEBTORS); events debtor/sweep/handover; skimming or lying for a debtor can be found out.
+  `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
+  Families: no visible requirements, only street rumors. Any family gives any test (ring, sneak, safe, collect) at random;
+  each test also picks a random variant (venue, opponent, place). Use clan(fam) for the plural (the Morettis, the Delacroix).
+  Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the sneak test, test room in Profile.
+  Safe minigame (memory keypad): `startSafe(job, title)`; used by the safe test (DELACROIX_JOBS: method scope/closet/bribe), test room in Profile.
+  Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; used by the collect test, test room in Profile.
+  Collect night: P.collect holds the notebook (3 DEBTORS); events debtor/sweep/handover; skimming or lying for a debtor can be found out.
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
   the alarm wakes a knocked-out guard. Arrows (next move) always show; route dots only with smarts 65+.
   Endings: win (clean), loud (out with the target after an alarm), fled (out without it), caught.

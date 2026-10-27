@@ -135,11 +135,11 @@ function joinFamily(name, text, fx = {}) {
   return ok(`${text} You are now an Associate of the ${name} family.`, { respect: 5, ...fx });
 }
 
-// Starts the family's test scene right away.
+// Starts a random test for that family right away.
 function seekFamily(name) {
   closeSheet();
-  const e = EVENTS.find(x => x.id === FAMILY_INFO[name].scene);
-  P.pending.unshift({ id: e.id, c: makeCtx(e) });
+  const kind = pick(FAMILY_TESTS), e = EVENTS.find(x => x.id === kind);
+  P.pending.unshift({ id: e.id, c: makeCtx(e, { fam: name }) });
   save();
   nextEvent();
 }
@@ -210,14 +210,16 @@ function queueEvent(tag, prob = 1) {
   P.pending.push({ id: e.id, c: makeCtx(e) });
 }
 
-function makeCtx(e) {
+function makeCtx(e, extra = {}) {
   const first = pick(FIRST_M.concat(FIRST_F)), last = pick(LAST);
-  return {
+  const c = {
     first, last, full: `${first} ${last}`, n: `${first} '${pick(NICKS)}' ${last}`,
-    crew: pick(CREWS), rival: pick(CREWS.filter(c => c !== P.flags.crew)), fam: pick(FAMILIES), cop: pick(COPS),
-    ...(e.ctx ? e.ctx(P) : {}),
+    crew: pick(CREWS), rival: pick(CREWS.filter(x => x !== P.flags.crew)), fam: pick(FAMILIES), cop: pick(COPS), ...extra,
   };
+  return { ...c, ...(e.ctx ? e.ctx(P, c) : {}) };
 }
+
+const titleOf = (e, c) => (typeof e.title === 'function' ? e.title(P, c) : e.title);
 
 // Shows the next queued event, skipping any that no longer fit (say, you got arrested earlier this year).
 function nextEvent() {
@@ -225,7 +227,7 @@ function nextEvent() {
     const { id, c } = P.pending[0];
     const e = EVENTS.find(x => x.id === id);
     if (!e || !eligible(e)) { P.pending.shift(); continue; }
-    if (e.auto) { P.pending.shift(); return resolve(e.auto(P, c), e.title); }
+    if (e.auto) { P.pending.shift(); return resolve(e.auto(P, c), titleOf(e, c)); }
     return showEvent(e, c);
   }
 }
@@ -234,13 +236,13 @@ function showEvent(e, c) {
   const choices = e.choices
     .map((ch, i) => `<button class="opt" data-choice="${i}">${esc(typeof ch.label === 'function' ? ch.label(P, c) : ch.label)}</button>`)
     .join('');
-  showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Age ${P.age} · Event</p><h2>${esc(e.title)}</h2><p>${esc(e.text(P, c))}</p><div class="choices">${choices}</div></div>`);
+  showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Age ${P.age} · Event</p><h2>${esc(titleOf(e, c))}</h2><p>${esc(e.text(P, c))}</p><div class="choices">${choices}</div></div>`);
 }
 
 function choose(i) {
   const { id, c } = P.pending.shift();
   const e = EVENTS.find(x => x.id === id);
-  play(e.choices[i].run(P, c), e.title);
+  play(e.choices[i].run(P, c), titleOf(e, c));
 }
 
 // An outcome either resolves right away or starts a fight first.
@@ -914,10 +916,8 @@ const SHEETS = {
     return ['Jobs', list(JOBS.map(j => item(`hire:${j.id}`, j.title, `${cash(j.salary)} a year · ${needs(j)}`, '', P.age < j.minAge && `Age ${j.minAge}+`)))];
   },
   families() {
-    return ['Families', `<p class="hint">One try a year. Here is what the street says:</p>` + list(FAMILIES.map(name => {
-      const open = FAMILY_INFO[name].scene;
-      return `<button class="item" data-seek="${name}"${open ? '' : ' disabled'}><span class="nm">The ${name} family</span><span class="ds">${esc(FAMILY_INFO[name].rumor)}</span>${open ? '' : '<span class="mt">Coming soon</span>'}</button>`;
-    }))];
+    return ['Families', `<p class="hint">One try a year, and every family tests you differently each time. Here is what the street says:</p>` + list(FAMILIES.map(name =>
+      `<button class="item" data-seek="${name}"><span class="nm">The ${name} family</span><span class="ds">${esc(FAMILY_INFO[name].rumor)}</span></button>`))];
   },
   crime() {
     if (P.prison) return prisonList();
@@ -938,7 +938,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.11</p>`];
+      `<p class="ver">Mafiozo 0.12</p>`];
   },
 };
 

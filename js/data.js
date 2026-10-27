@@ -11,22 +11,24 @@ const NICKS = ['Knuckles', 'Two Times', 'The Ox', 'Slick', 'Fingers', 'Saint', '
 const CREWS = ['the Kestrel Boys', 'the Southside Vipers', 'the Quay Rats', 'the Carrow Street Crew', 'the Neon Saints'];
 const FAMILIES = ['Moretti', 'Volkov', 'Delacroix', 'Castellano'];
 
-// What the street says about each family, and the event (`scene`) that tests newcomers.
-// Families without a scene are not open yet.
+// What the street says about each family, and where they meet a newcomer.
 const FAMILY_INFO = {
-  Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.', scene: 'moretti' },
-  Volkov: { rumor: 'With the Russians, only your fists talk.', scene: 'volkov' },
-  Delacroix: { rumor: 'The Delacroix have no patience for fools.', scene: 'delacroix' },
-  Castellano: { rumor: 'With the Castellanos, everything has a price.', scene: 'castellano' },
+  Moretti: { rumor: 'The old men respect honor, and those who know how to stay quiet.', meet: 'behind a bakery on Crown Hill' },
+  Volkov: { rumor: 'With the Russians, only your fists talk.', meet: 'in the back of the Iron Bear boxing gym' },
+  Delacroix: { rumor: 'The Delacroix have no patience for fools.', meet: 'over dinner at Maison Delacroix' },
+  Castellano: { rumor: 'With the Castellanos, everything has a price.', meet: 'in the back office of their casino on the Strip' },
 };
+// Any family can test you with any of these (event ids), picked at random each try.
+const FAMILY_TESTS = ['ring', 'sneak', 'safe', 'collect'];
+const clan = f => (f === 'Delacroix' ? 'Delacroix' : `${f}s`); // the Morettis, but the Delacroix
 const FAM_RANKS = ['Associate', 'Soldier', 'Capo', 'Underboss', 'Don'];
 
-// The Volkov test is a ring fight. Venue and opponent change every time.
+// The ring test. Venue and opponent change every time.
 const VOLKOV_VENUES = [
-  'The Volkovs run the Iron Bear, a boxing gym under the Saltmarsh fish market.',
-  'The Volkovs hold fights in a cage inside a cold-storage warehouse at Old Quay.',
-  'Tonight the Volkovs fight in the cargo hold of a freighter that sails at dawn.',
-  'The Volkovs rent out a closed bathhouse on Crown Hill for fight night.',
+  'The {clan} run the Iron Bear, a boxing gym under the Saltmarsh fish market.',
+  'The {clan} hold fights in a cage inside a cold-storage warehouse at Old Quay.',
+  'Tonight the {clan} fight in the cargo hold of a freighter that sails at dawn.',
+  'The {clan} rent out a closed bathhouse on Crown Hill for fight night.',
 ];
 const VOLKOV_FIGHTERS = [
   { name: 'Dmitri the Anvil', note: 'Hits like a truck. Moves like one too.', hp: 70, pow: 18, spd: 0.9, mix: { punch: 3, block: 1, grapple: 1 } },
@@ -37,16 +39,16 @@ const VOLKOV_FIGHTERS = [
 const VOLKOV_CHAMP = { name: 'Viktor the Bear', note: 'Nobody has lasted three rounds with the champion this year.', hp: 100, pow: 22, spd: 1.4, mix: { punch: 2, block: 1, grapple: 2 } };
 
 // Win and you are in. Lose after hurting them badly and you may still be in. Run and you are a joke.
-function volkovFight(p, foe, champ) {
+function volkovFight(p, fam, foe, champ) {
   p.done.seek = true;
   return brawl(foe, foe.name,
-    () => joinFamily('Volkov', champ
-      ? `You put ${foe.name} on the floor. The room goes silent, then the vodka comes out.`
+    () => joinFamily(fam, champ
+      ? `You put ${foe.name} on the floor. The room goes silent, then the bottles come out.`
       : `You beat ${foe.name}. The lieutenant nods once. "Tomorrow you work for us."`, champ ? { respect: rnd(10, 15) } : {}),
     f => f.them <= foe.hp / 2
-      ? joinFamily('Volkov', `${foe.name} won, but you kept getting up. "This one has heart," the lieutenant says.`)
-      : bad(`${foe.name} knocked you out cold. You woke up in the alley out back.`, { respect: -2 }, 'Died in a Volkov fight ring'),
-    () => bad('You ran from a Volkov fight. They will be laughing about it all year.', { respect: -4 }));
+      ? joinFamily(fam, `${foe.name} won, but you kept getting up. "This one has heart," the lieutenant says.`)
+      : bad(`${foe.name} knocked you out cold. You woke up in the alley out back.`, { respect: -2 }, `Died in a ${fam} fight ring`),
+    () => bad(`You ran from a ${fam} fight. They will be laughing about it all year.`, { respect: -4 }));
 }
 const COPS = ['Harlow', 'Briggs', 'Okafor', 'Reyes', 'Kowalski'];
 const PARENTS = [
@@ -85,7 +87,7 @@ const SNEAK_TEST = {
   ],
 };
 
-// The Delacroix test: a safe job. Code length, seconds before the owner is back, who you could bribe,
+// The safe test: a safe job. Code length, seconds before the owner is back, who you could bribe,
 // and who has you if it goes wrong. The safe test room in Profile picks from these too.
 const DELACROIX_JOBS = [
   { place: 'the Grand Velmora Hotel', digits: 4, time: 15, insider: 'the maid', caughtBy: 'police',
@@ -105,7 +107,7 @@ const BRIBE = 1000;
 
 function delacroixJob(p, c, method) {
   const job = DELACROIX_JOBS[c.job];
-  if (method === 'bribe' && p.money < BRIBE) return meh(`You cannot afford ${job.insider}. The Delacroix smile politely and wait.`);
+  if (method === 'bribe' && p.money < BRIBE) return meh(`You cannot afford ${job.insider}. The ${clan(c.fam)} smile politely and wait.`);
   p.done.seek = true;
   if (method === 'bribe' && chance(0.15)) { // the insider talked
     P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
@@ -115,64 +117,64 @@ function delacroixJob(p, c, method) {
     P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
     return bad(CLOSET_FOUND);
   }
-  return { safe: { ...job, method, end: (how, tries) => delacroixEnd(job, method, how, tries) } };
+  return { safe: { ...job, method, end: (how, tries) => delacroixEnd(c.fam, job, method, how, tries) } };
 }
 
 // First try earns the most respect. Locked or too slow leads to the `nabbed` event.
-function delacroixEnd(job, method, how, tries) {
+function delacroixEnd(fam, job, method, how, tries) {
   const fee = method === 'bribe' ? { money: -BRIBE } : {};
   if (how === 'open') {
     const clean = tries === 3, respect = clean ? rnd(8, 12) : rnd(3, 6);
     const text = clean ? `Not a single wrong digit. ${job.win}` : `It took a few tries, but ${job.win.charAt(0).toLowerCase()}${job.win.slice(1)}`;
-    return joinFamily('Delacroix', text, { ...fee, respect });
+    return joinFamily(fam, text, { ...fee, respect });
   }
   if (how === 'quit') return meh('You backed off before anyone saw you. Maybe next year.', fee);
   P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
   return bad(how === 'locked' ? 'The safe locked itself and an alarm went off.' : 'The owner walked in on you.', fee);
 }
 
-// The Castellano test: debtors in the notebook. What they owe, seconds to sweep their place (memory minigame), the six
+// The collect test: debtors in the notebook. What they owe, seconds to sweep their place (memory minigame), the six
 // kinds of things in it (matching a pair takes it; junk only eats the clock), their story, and the deal they offer
-// instead. `pocket` goes to you and never reaches the Castellanos; `knife` means a fight comes first.
+// instead. `pocket` goes to you and never reaches the family; `knife` means a fight comes first.
 const DEBTORS = [
-  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 17,
+  { who: 'the barber', place: 'a barbershop on Carrow Street', owes: 2000, time: 22,
     plea: 'The barber is in tears. A sick daughter, hospital bills, nothing left.',
     deal: { label: 'Take the gold watch instead', take: 900, text: 'You took the watch off the barber\'s wrist. Nobody looked up.' },
     items: [
       { icon: '💵', name: 'Cash from the register', value: 400 }, { icon: '⌚', name: 'A gold watch', value: 900 },
       { icon: '✂️', name: 'Silver shears', value: 300 }, { icon: '💍', name: 'A wedding ring', value: 600 },
       { icon: '🧴', name: 'Hair tonic', value: 0 }, { icon: '📰', name: 'Old newspapers', value: 0 }] },
-  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 17, knife: true,
+  { who: 'the bookie', place: 'a betting shop on the Strip', owes: 5000, time: 22, knife: true,
     plea: 'The bookie laughs in your face and pulls a knife from under the counter.',
-    deal: { label: 'Settle for the betting book', take: 1500, text: 'The bookie kept the knife. You kept the book of bets. The Castellanos can squeeze it.' },
+    deal: { label: 'Settle for the betting book', take: 1500, text: 'The bookie kept the knife. You kept the book of bets. The family can squeeze it.' },
     items: [
       { icon: '💰', name: 'A bag of cash', value: 1500 }, { icon: '💵', name: 'A roll of twenties', value: 500 },
       { icon: '⌚', name: 'A gold watch', value: 1200 }, { icon: '💎', name: 'A loose diamond', value: 2000 },
       { icon: '🎟️', name: 'Losing tickets', value: 0 }, { icon: '🧦', name: 'Socks', value: 0 }] },
-  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 17,
+  { who: 'the widow', place: 'a bakery on Crown Hill', owes: 1500, time: 22,
     plea: 'The widow says the debts died with her husband. Then her eyes go to the jewelry box.',
     deal: { label: 'Take the jewelry box', take: 1200, text: 'The widow put the jewelry box in your hands without a word.' },
     items: [
       { icon: '📿', name: 'A pearl necklace', value: 700 }, { icon: '💍', name: 'A diamond ring', value: 900 },
       { icon: '🏺', name: 'An antique vase', value: 500 }, { icon: '💵', name: 'The till', value: 200 },
       { icon: '🍞', name: 'Day-old bread', value: 0 }, { icon: '🧶', name: 'Yarn', value: 0 }] },
-  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 17,
+  { who: 'the bar owner', place: 'a bar in Old Quay', owes: 3000, time: 22,
     plea: 'The bar owner slides an envelope across the bar. "A thousand if you tell them I already paid."',
     deal: { label: 'Take the $1,000 and lie for the bar', take: 0, pocket: 1000, text: 'The envelope went into your coat. On paper, the bar is paid up.' },
     items: [
       { icon: '💵', name: 'The till', value: 600 }, { icon: '🍾', name: 'Vintage champagne', value: 400 },
       { icon: '🎸', name: 'A signed guitar', value: 1100 }, { icon: '⌚', name: 'A gold watch', value: 1000 },
       { icon: '🥜', name: 'Bar nuts', value: 0 }, { icon: '🧾', name: 'Unpaid tabs', value: 0 }] },
-  { who: 'the businessman', place: 'a penthouse in Harbor Heights', owes: 8000, time: 17,
+  { who: 'the businessman', place: 'a penthouse in Harbor Heights', owes: 8000, time: 22,
     plea: 'The businessman swears the penthouse is all show and the money is long gone.',
     deal: { label: 'Take the car keys instead', take: 4000, text: 'You drove off in the businessman\'s convertible.' },
     items: [
       { icon: '💼', name: 'A briefcase of cash', value: 3000 }, { icon: '⌚', name: 'A Swiss watch', value: 2000 },
       { icon: '🖼️', name: 'A painting', value: 1800 }, { icon: '🍷', name: 'Rare wine', value: 1200 },
       { icon: '📉', name: 'Worthless stock', value: 0 }, { icon: '🧾', name: 'Final notices', value: 0 }] },
-  { who: 'the cop', place: 'an apartment in Southside', owes: 3500, time: 17, tossFx: { heat: 10 },
+  { who: 'the cop', place: 'an apartment in Southside', owes: 3500, time: 22, tossFx: { heat: 10 },
     plea: 'The cop flashes a badge. "Think hard about who you are shaking down."',
-    deal: { label: 'Trade the debt for a favor', take: 0, fx: { heat: -15 }, text: 'The cop will lose a file for you someday. The Castellanos will not love it.' },
+    deal: { label: 'Trade the debt for a favor', take: 0, fx: { heat: -15 }, text: 'The cop will lose a file for you someday. The family will not love it.' },
     items: [
       { icon: '💵', name: 'An envelope of bribes', value: 2000 }, { icon: '⌚', name: 'A gold watch', value: 900 },
       { icon: '📻', name: 'A police scanner', value: 400 }, { icon: '🏅', name: 'A medal', value: 300 },
@@ -180,10 +182,10 @@ const DEBTORS = [
 ];
 
 // The night of collecting lives in P.collect: three debtors in a row, then the hand-over at dawn.
-function castellanoStart(p) {
+function castellanoStart(p, c) {
   p.done.seek = true;
   const list = DEBTORS.map((_, i) => i).sort(() => Math.random() - 0.5).slice(0, 3);
-  P.collect = { list, i: 0, owed: list.reduce((sum, d) => sum + DEBTORS[d].owes, 0), got: 0, pocket: 0, lied: false };
+  P.collect = { list, i: 0, owed: list.reduce((sum, d) => sum + DEBTORS[d].owes, 0), got: 0, pocket: 0, lied: false, fam: c.fam };
   P.pending.unshift({ id: 'debtor', c: { d: list[0] } });
   return meh(`Three names: ${list.map(d => DEBTORS[d].who).join(', ')}. ${cash(P.collect.owed)} in all, by morning.`);
 }
@@ -226,13 +228,13 @@ function castellanoVerdict(p, share) {
   const kept = Math.round(n.got * share), given = n.got - kept, pocket = kept + n.pocket;
   const risk = (share ? share * 1.5 + 0.2 : 0) + (n.lied ? 0.3 : 0) - p.smarts / 300;
   if ((share || n.lied) && chance(Math.max(0.05, risk))) {
-    return bad('The capo counted twice and found the hole. The Castellanos do not forgive thieves.', { health: -rnd(20, 35), respect: -5 }, 'Beaten to death for skimming from the Castellanos');
+    return bad(`The capo counted twice and found the hole. The ${clan(n.fam)} do not forgive thieves.`, { health: -rnd(20, 35), respect: -5 }, `Beaten to death for skimming from the ${clan(n.fam)}`);
   }
-  if (given >= n.owed * 0.75) return joinFamily('Castellano', `You put ${cash(given)} on the desk. The capo counts it twice and smiles.`, { money: pocket, respect: rnd(6, 10) });
+  if (given >= n.owed * 0.75) return joinFamily(n.fam, `You put ${cash(given)} on the desk. The capo counts it twice and smiles.`, { money: pocket, respect: rnd(6, 10) });
   return meh(`${cash(given)} of ${cash(n.owed)}. "Come back when you know how to earn."`, { money: pocket });
 }
 
-// The Moretti test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
+// The sneak test: a random job, then a way in. `shiftOff` is the guard missing during the shift change,
 // `shiftMoves` how long until the next shift arrives. `caughtBy` decides who has you if it goes wrong.
 const MORETTI_JOBS = [
   { place: 'the Old Quay precinct', caughtBy: 'police',
@@ -279,15 +281,15 @@ const MORETTI_JOBS = [
 function morettiJob(p, c, entry) {
   p.done.seek = true;
   const job = MORETTI_JOBS[c.job];
-  return { sneak: { room: job.room, entry, label: 'Moretti test', end: (how, bonus) => morettiEnd(job, how, bonus) } };
+  return { sneak: { room: job.room, entry, label: `${c.fam} test`, end: (how, bonus) => morettiEnd(c.fam, job, how, bonus) } };
 }
 
 // Clean gets you in with respect, loud gets you in with heat. Caught leads to a last choice (the `nabbed` event).
-function morettiEnd(job, how, bonus) {
+function morettiEnd(fam, job, how, bonus) {
   const extra = bonus ? job.room.bonus.fx : {};
-  if (how === 'win') return joinFamily('Moretti', `Not a soul saw you. ${job.win} The old men were impressed.`, { respect: rnd(8, 12), ...extra });
-  if (how === 'loud') return joinFamily('Moretti', `It got loud and people saw your face, but ${job.win.charAt(0).toLowerCase()}${job.win.slice(1)}`, { heat: rnd(20, 30), ...extra });
-  if (how === 'fled') return bad('You got out, but empty-handed. The Morettis will not try you again this year.', { respect: -3, ...extra });
+  if (how === 'win') return joinFamily(fam, `Not a soul saw you. ${job.win} The family was impressed.`, { respect: rnd(8, 12), ...extra });
+  if (how === 'loud') return joinFamily(fam, `It got loud and people saw your face, but ${job.win.charAt(0).toLowerCase()}${job.win.slice(1)}`, { heat: rnd(20, 30), ...extra });
+  if (how === 'fled') return bad(`You got out, but empty-handed. The ${clan(fam)} will not try you again this year.`, { respect: -3, ...extra });
   if (how === 'quit') return meh('You walked away before it went wrong. Maybe next year.');
   P.pending.unshift({ id: 'nabbed', c: { by: job.caughtBy } });
   return null;
@@ -382,36 +384,36 @@ const JOBS = [
 // come from hanging on the corner. `scene` events only run when you start them (see FAMILY_INFO). Context `c`: first, last, full, n (with nickname),
 // crew, rival, fam, cop, plus whatever `ctx` adds. Write NPC lines without pronouns.
 const EVENTS = [
-  { id: 'volkov', title: 'The Volkov Test', scene: true, when: p => !p.fam,
+  { id: 'ring', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
     ctx: () => ({ venue: pick(VOLKOV_VENUES), foe: pick(VOLKOV_FIGHTERS) }),
-    text: (p, c) => `${c.venue} A Volkov lieutenant looks you over. "You want in? Here, you fight. Tonight it is ${c.foe.name}." ${c.foe.note}`,
+    text: (p, c) => `${c.venue.replace('{clan}', clan(c.fam))} A ${c.fam} lieutenant looks you over. "You want in? Here, you fight. Tonight it is ${c.foe.name}." ${c.foe.note}`,
     choices: [
-      { label: 'Step into the ring', run: (p, c) => volkovFight(p, c.foe, false) },
-      { label: 'Ask for their champion', run: p => volkovFight(p, VOLKOV_CHAMP, true) },
-      { label: 'Walk away', run: () => meh('Not tonight. The Volkovs are not going anywhere.') },
+      { label: 'Step into the ring', run: (p, c) => volkovFight(p, c.fam, c.foe, false) },
+      { label: 'Ask for their champion', run: (p, c) => volkovFight(p, c.fam, VOLKOV_CHAMP, true) },
+      { label: 'Walk away', run: (p, c) => meh(`Not tonight. The ${clan(c.fam)} are not going anywhere.`) },
     ] },
-  { id: 'moretti', title: 'The Moretti Test', scene: true, when: p => !p.fam,
-    ctx: () => ({ job: rnd(0, MORETTI_JOBS.length - 1), rival: pick(['Volkov', 'Delacroix', 'Castellano']) }),
-    text: (p, c) => `A Moretti capo meets you behind a bakery on Crown Hill. "You want in? Prove it. ${MORETTI_JOBS[c.job].brief.replace('{rival}', c.rival)}" In disguise, guards only notice you up close, but once they do they never let go. The back way is longer, with more cover. During the shift change there is one guard fewer, but the next shift comes fast.`,
+  { id: 'sneak', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
+    ctx: (p, c) => ({ job: rnd(0, MORETTI_JOBS.length - 1), rival: pick(FAMILIES.filter(f => f !== c.fam)) }),
+    text: (p, c) => `A ${c.fam} capo meets you ${FAMILY_INFO[c.fam].meet}. "You want in? Prove it. ${MORETTI_JOBS[c.job].brief.replace('{rival}', c.rival)}" In disguise, guards only notice you up close, but once they do they never let go. The back way is longer, with more cover. During the shift change there is one guard fewer, but the next shift comes fast.`,
     choices: [
       { label: 'Front door, in disguise', run: (p, c) => morettiJob(p, c, 'mask') },
       { label: 'The back way', run: (p, c) => morettiJob(p, c, 'back') },
       { label: 'During the shift change', run: (p, c) => morettiJob(p, c, 'shift') },
       { label: 'Walk away', run: () => meh('"Come back when you have the stomach for it."') },
     ] },
-  { id: 'delacroix', title: 'The Delacroix Test', scene: true, when: p => !p.fam,
+  { id: 'safe', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
     ctx: () => ({ job: rnd(0, DELACROIX_JOBS.length - 1) }),
-    text: (p, c) => `Dinner at Maison Delacroix. Nobody touches the food. "We hear you are clever. Show us. ${DELACROIX_JOBS[c.job].brief}" The safe has a ${DELACROIX_JOBS[c.job].digits}-digit code. Binoculars from across the street are safe, but you only catch a glimpse. A closet in the room gives you a close look, if nobody opens it. ${DELACROIX_JOBS[c.job].insider.charAt(0).toUpperCase() + DELACROIX_JOBS[c.job].insider.slice(1)} could give you half the code, for a price, and might talk.`,
+    text: (p, c) => `You meet the ${clan(c.fam)} ${FAMILY_INFO[c.fam].meet}. "We hear you are clever. Show us. ${DELACROIX_JOBS[c.job].brief}" The safe has a ${DELACROIX_JOBS[c.job].digits}-digit code. Binoculars from across the street are safe, but you only catch a glimpse. A closet in the room gives you a close look, if nobody opens it. ${DELACROIX_JOBS[c.job].insider.charAt(0).toUpperCase() + DELACROIX_JOBS[c.job].insider.slice(1)} could give you half the code, for a price, and might talk.`,
     choices: [
       { label: 'Binoculars across the street', run: (p, c) => delacroixJob(p, c, 'scope') },
       { label: 'Hide in the closet', run: (p, c) => delacroixJob(p, c, 'closet') },
       { label: () => `Bribe the staff (${cash(BRIBE)})`, run: (p, c) => delacroixJob(p, c, 'bribe') },
       { label: 'Walk away', run: () => meh('"A pity. We so rarely meet anyone interesting."') },
     ] },
-  { id: 'castellano', title: 'The Castellano Test', scene: true, when: p => !p.fam,
-    text: () => 'The back office of the Castellano casino on the Strip smells of cigars and money. "With us, everything has a price. Show us you can earn." The capo slides a notebook across the desk: three names, three debts, due by morning. Bring at least three quarters of it, and do not even think about short-changing us.',
+  { id: 'collect', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
+    text: (p, c) => `You meet the ${clan(c.fam)} ${FAMILY_INFO[c.fam].meet}. "Show us you can earn." A capo slides a notebook across the table: three names, three debts, due by morning. Bring at least three quarters of it, and do not even think about short-changing us.`,
     choices: [
-      { label: 'Take the notebook', run: p => castellanoStart(p) },
+      { label: 'Take the notebook', run: (p, c) => castellanoStart(p, c) },
       { label: 'Walk away', run: () => meh('"Suit yourself. Money waits for no one."') },
     ] },
   { id: 'debtor', title: 'A Name in the Notebook', scene: true, when: () => true,
@@ -424,7 +426,7 @@ const EVENTS = [
   { id: 'sweep', title: 'Toss the Place', scene: true, when: () => true,
     text: (p, c) => `Nobody is stopping you now. Find what ${DEBTORS[c.d].who} is hiding.`,
     choices: [{ label: 'Start looking', run: (p, c) => ({ memory: memJob(c.d) }) }] },
-  { id: 'handover', title: 'Back at the Casino', scene: true, when: () => true,
+  { id: 'handover', title: 'The Hand-over', scene: true, when: () => true,
     text: () => {
       const n = P.collect || { got: 0, owed: 0, pocket: 0 };
       return `Dawn. You collected ${cash(n.got)} of the ${cash(n.owed)} in the notebook${n.pocket ? `, and ${cash(n.pocket)} went into your own pocket on the side` : ''}. The capo is already counting.`;
