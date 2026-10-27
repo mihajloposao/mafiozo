@@ -319,24 +319,41 @@ function fightMenu() {
   let roll = Math.random() * Object.values(mix).reduce((x, y) => x + y, 0);
   F.next = Object.keys(mix).find(k => (roll -= mix[k]) < 0) || 'punch';
   if (F.v2) foeThinks();
-  F.zone = { x: rnd(5, 95 - w), w };
+  F.zone = { x: rnd(F.v2 ? 15 : 5, 95 - w), w };
+  F.delay = 200 + P.smarts * 6;
   const t0 = (F.t0 = performance.now());
   const shown = F.v2 ? F.shown : chance(P.smarts / 130) ? F.next : null;
   const tell = shown ? `${cap(F.foe.name)} ${TELLS[shown]}.` : `You can't read ${F.foe.name}.`;
   showModal(fightCard(`<p class="tell">${esc(tell)}</p>
     <div class="meter"><i style="left:${F.zone.x}%;width:${w}%"></i><b id="needle"></b></div>
     <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}${F.v2 ? `<small>${k === 'block' ? '+15' : `−${COST[k]}`} stamina</small>` : ''}</button>`).join('')}</div>
-    <p class="rules">Tap a move while the needle is in the bright zone.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch${F.v2 ? '<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
+    <p class="rules">Tap a move while the needle is in the bright zone.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch${F.v2 ? '<br>The needle crosses once: too slow and the hit lands unopposed.<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
     <button class="ghost flee" data-do="flee">Run for it</button>`));
   const sweep = () => {
     if (!F || F.t0 !== t0) return; // the next round or the end of the fight stops this loop
-    $('#needle').style.left = `${needlePos()}%`;
+    const pos = needlePos();
+    $('#needle').style.left = `${pos}%`;
+    if (F.v2 && pos >= 100) return hesitate();
     requestAnimationFrame(sweep);
   };
   requestAnimationFrame(sweep);
 }
 
-const needlePos = () => { const ph = (((performance.now() - F.t0) / 1000) * F.foe.spd) % 2; return (ph < 1 ? ph : 2 - ph) * 100; };
+// The old needle swings back and forth; under the new rules it crosses once, after a short pause (longer with smarts).
+const needlePos = () => {
+  const t = (performance.now() - F.t0) / 1000;
+  if (F.v2) return Math.min(100, Math.max(0, (t - F.delay / 1000) * F.foe.spd * 60));
+  const ph = (t * F.foe.spd) % 2;
+  return (ph < 1 ? ph : 2 - ph) * 100;
+};
+
+// New rules: the needle ran out before you picked a move, so the opponent's move lands unopposed.
+function hesitate() {
+  const took = F.next === 'block' ? 0 : rnd(F.foe.pow - 3, F.foe.pow + 3);
+  F.stam = Math.min(F.stamMax, F.stam + 10);
+  F.reads = 0;
+  hitRound(0, took, took ? `Too slow. ${cap(F.foe.name)} hit you clean.` : `Too slow, but ${F.foe.name} only kept a guard up.`);
+}
 
 function strike(me) {
   const pos = needlePos(), { x, w } = F.zone;
@@ -413,7 +430,7 @@ function foeThinks() {
 
 function fightTestMenu() {
   showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Fight test</p><h2>Pick a Sparring Partner</h2>
-    <p>New rules: a tell can be a feint, fighters punish a move you keep repeating, and punching and grappling cost stamina while blocking gets it back. Strength gives you more stamina. Nothing here affects your life.</p>
+    <p>New rules: the needle crosses only once, so hesitate and you get hit. A tell can be a feint, fighters punish a move you keep repeating, and punching and grappling cost stamina while blocking gets it back. Strength gives you more stamina. Nothing here affects your life.</p>
     <div class="choices">${SPARRING.map((f, i) => `<button class="opt" data-ft="${i}">${esc(cap(f.name))} · ${f.level}</button>`).join('')}<button class="ghost" data-ft="close">Close</button></div></div>`);
 }
 
