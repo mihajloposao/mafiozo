@@ -59,5 +59,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    (great/ok/bad) raises or lowers stats; the trained stat is NOT shown beforehand. Mandatory, no skip. It replaces the
    automatic stat growth (a school concept comes later). New minigame mechanics will be built for it.
    Scenario = mechanic + story + difficulty + stat. Planning starts with the earliest age, then later ages.
+   Decided: a new life starts at age 5 (birth year counted back) with a short early-childhood summary in the log
+   (birthplace, parents, one or two small memories reusing the age 2-6 'kid' events); TODO later: refine that summary.
+   The first challenge runs right at the start, at age 5. Childhood scenarios (ages 5-12) are detailed one by one.
 3. Phase 3: businesses, property, money laundering, courts and lawyers.
 4. Phase 4: art, sound, balance, store release (Capacitor).
