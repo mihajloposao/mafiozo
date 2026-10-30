@@ -54,5 +54,10 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    b. Founding your own family: name a crew, recruit, take Velmora districts one by one (crew, gang, family); existing families see a threat.
    c. Conflicts and the road to Don for both paths: succession or coup, DA deal to testify, loyalty tests, family wars.
    Later: relationships (family members, partner, heirs, crew friends).
+   Yearly challenge (planning, owner's decisions): every year from early childhood one short minigame with a short
+   backstory, chosen at random from scenarios that fit the age and situation (no repeat two years in a row). The result
+   (great/ok/bad) raises or lowers stats; the trained stat is NOT shown beforehand. Mandatory, no skip. It replaces the
+   automatic stat growth (a school concept comes later). New minigame mechanics will be built for it.
+   Scenario = mechanic + story + difficulty + stat. Planning starts with the earliest age, then later ages.
 3. Phase 3: businesses, property, money laundering, courts and lawyers.
 4. Phase 4: art, sound, balance, store release (Capacitor).
