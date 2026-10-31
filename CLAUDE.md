@@ -62,6 +62,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    Decided: a new life starts at age 5 (birth year counted back) with a short early-childhood summary in the log
    (birthplace, parents, one or two small memories reusing the age 2-6 'kid' events); TODO later: refine that summary.
    The first challenge runs right at the start, at age 5. Childhood scenarios (ages 5-12) are detailed one by one.
+   Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.
+   Childhood ideas: defend the new kid being teased; carry the old neighbor's bags; find a lost dog's owner;
+   broke a window with a ball (own up or run); late home (lie or tell the truth).
    Stats redesign (open, owner decides later): add a new stat 'Soul', -100 (evil) to +100 (good), 0 neutral (later it may
    affect luck or how people react). For it AND for the existing five (health, strength, smarts, respect, heat), what
    they affect and how they change is NOT decided yet and will be defined together; the current code stays until then.
