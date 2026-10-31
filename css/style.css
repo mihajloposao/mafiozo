@@ -62,14 +62,17 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; text-tran
 .yr small, .fx { display: block; color: var(--muted); font-size: 13px; font-variant-numeric: tabular-nums; }
 
 /* stats */
-.stats { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; padding-block: 10px; border-top: 1px solid var(--line); }
-.stat { display: grid; justify-items: center; gap: 2px; font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.stats { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; padding-block: 10px; border-top: 1px solid var(--line); }
+.stat { display: grid; justify-items: center; gap: 2px; font-size: 9.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
 .stat b { font: 800 22px/1 var(--display); color: var(--fg); font-variant-numeric: tabular-nums; }
 .stat i { width: 100%; position: relative; height: 4px; margin-top: 2px; border-radius: 2px; background: var(--raise); overflow: hidden; }
 .stat i::before { content: ""; position: absolute; inset: 0 auto 0 0; width: var(--v); background: var(--mint); border-radius: inherit; transition: width .4s ease; }
 .stat.respect i::before { background: var(--brass); }
 .stat.heat i::before { background: var(--muted); }
 .stat.warn i::before { background: var(--blood); }
+.stat.soul i::before { left: var(--l); width: var(--w); border-radius: 0; }
+.stat.soul.neg i::before { background: var(--blood); }
+.stat.soul i::after { content: ""; position: absolute; left: 50%; top: 0; bottom: 0; width: 1px; background: var(--muted); }
 .stat.warn b { color: var(--blood); }
 
 /* action bar */

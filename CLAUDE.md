@@ -14,8 +14,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - `tools/artifact.html` – shell for the claude.ai artifact build.
 
 ## Conventions
-- Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, str, smarts, respect, heat.
-- Keep it simple: five stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one tap per fight round.
+- Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, str, smarts, respect, heat, soul (soul -100..100).
+- Keep it simple: six stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one tap per fight round.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
@@ -67,7 +67,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.
    Childhood ideas: defend the new kid being teased; carry the old neighbor's bags; find a lost dog's owner;
    broke a window with a ball (own up or run); late home (lie or tell the truth).
-   Stats redesign (open, owner decides later): add a new stat 'Soul', -100 (evil) to +100 (good), 0 neutral (later it may
+   Stats redesign (open, owner decides later): stat 'Soul' is in the game (-100 evil to +100 good, starts at 0, shown,
+   but nothing changes it and it affects nothing yet; later it may
    affect luck or how people react). For it AND for the existing five (health, strength, smarts, respect, heat), what
    they affect and how they change is NOT decided yet and will be defined together; the current code stays until then.
 3. Phase 3: businesses, property, money laundering, courts and lawyers.

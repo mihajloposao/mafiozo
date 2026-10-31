@@ -1,7 +1,7 @@
 // Mafiozo – engine and UI. Game content (crimes, events, names) lives in data.js.
 
 const SAVE_KEY = 'mafiozo.save.v1';
-const STATS = [['health', 'Health'], ['str', 'Strength'], ['smarts', 'Smarts'], ['respect', 'Respect'], ['heat', 'Heat']];
+const STATS = [['health', 'Health'], ['str', 'Strength'], ['smarts', 'Smarts'], ['respect', 'Respect'], ['heat', 'Heat'], ['soul', 'Soul']]; // soul runs -100 (evil) to +100 (good)
 const LABEL = Object.fromEntries(STATS);
 let P = null; // the life being played, saved after every change
 
@@ -29,7 +29,7 @@ const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >=
 function newLife(first, last, gender) {
   P = {
     first, last, gender, age: 0, born: new Date().getFullYear(), district: pick(DISTRICTS),
-    money: 0, health: rnd(75, 100), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0,
+    money: 0, health: rnd(75, 100), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
     job: null, prison: 0, inmate: rnd(10000, 99999), alive: true, cause: '',
     flags: {}, seen: {}, done: {}, pending: [], tally: { crimes: 0, arrests: 0, served: 0, peak: 0 }, log: [],
   };
@@ -61,7 +61,7 @@ function applyFx(fx = {}) {
       if (P.money !== before) parts.push((v > 0 ? '+' : '') + cash(P.money - before));
     } else {
       const before = P[k];
-      P[k] = clamp(P[k] + v);
+      P[k] = clamp(P[k] + v, k === 'soul' ? -100 : 0);
       const d = P[k] - before;
       if (d) parts.push(`${LABEL[k]} ${d > 0 ? '+' : ''}${d}`);
     }
@@ -1003,7 +1003,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.13</p>`];
+      `<p class="ver">Mafiozo 0.14</p>`];
   },
 };
 
@@ -1033,6 +1033,7 @@ function render() {
     .map(it => `<p class="${it.tone}">${esc(it.text)}${it.fx ? `<small>${esc(it.fx)}</small>` : ''}</p>`).join('')}</section>`).join('');
   const bars = STATS.map(([k, label]) => {
     const v = P[k], warn = k === 'heat' ? v >= 50 : k === 'health' && v < 25;
+    if (k === 'soul') return `<div class="stat soul${v < 0 ? ' neg' : ''}"><b>${v > 0 ? '+' : ''}${v}</b><span>${label}</span><i style="--l:${v < 0 ? 50 + v / 2 : 50}%;--w:${Math.abs(v) / 2}%"></i></div>`; // fills out from the middle
     return `<div class="stat ${k}${warn ? ' warn' : ''}"><b>${v}</b><span>${label}</span><i style="--v:${v}%"></i></div>`;
   }).join('');
   app.innerHTML = `
@@ -1149,6 +1150,7 @@ document.addEventListener('submit', e => {
 function start(data) {
   P = (data && data.P) || load();
   if (P && P.str == null) P.str = 20; // saves from before strength existed
+  if (P && P.soul == null) P.soul = 0; // ...and before soul
   render();
   if (P && P.alive) nextEvent();
 }
