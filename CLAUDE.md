@@ -62,6 +62,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    Decided: a new life starts at age 5 (birth year counted back) with a short early-childhood summary in the log
    (birthplace, parents, one or two small memories reusing the age 2-6 'kid' events); TODO later: refine that summary.
    The first challenge runs right at the start, at age 5. Childhood scenarios (ages 5-12) are detailed one by one.
+   Chosen first childhood stories (each still to be detailed): chess with grandpa; schoolyard fight (with a choice to
+   fight or not); slingshot and cans; school quiz (with a chance to cheat); school cross-country run (with variations).
    Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.
    Childhood ideas: defend the new kid being teased; carry the old neighbor's bags; find a lost dog's owner;
    broke a window with a ball (own up or run); late home (lie or tell the truth).
