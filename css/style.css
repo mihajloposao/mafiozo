@@ -148,7 +148,9 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; text-tran
 .rules { margin: 10px 0 0; color: var(--muted); font-size: 12.5px; text-align: center; }
 .flee { width: 100%; margin-top: 8px; }
 .meter { position: relative; height: 48px; margin: 12px 0; border: 1px solid var(--line); border-radius: 8px; background: var(--raise); }
-.meter i { position: absolute; top: 0; bottom: 0; background: rgb(202 162 76 / .35); border-inline: 2px solid var(--brass); }
+.meter i { position: absolute; top: 0; bottom: 0; }
+.meter i.solid { background: rgb(202 162 76 / .16); border-inline: 1px solid rgb(202 162 76 / .5); }
+.meter i.perfect { background: rgb(202 162 76 / .55); border-inline: 2px solid var(--brass); }
 .meter b { position: absolute; top: -6px; bottom: -6px; left: 0; width: 4px; margin-left: -2px; border-radius: 2px; background: var(--fg); }
 .strike { width: 100%; padding: 16px; border-radius: 8px; font-size: 18px; }
 

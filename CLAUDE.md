@@ -18,6 +18,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Keep it simple: six stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one tap per fight round.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
+  Fights: the needle crosses once (too slow = the hit lands unopposed); Perfect/Solid zones widen with strength and shrink
+  when hurt; stamina (punch -25, grapple -30, block +15, +10 a round, tired = half power, needle 25% faster under 30).
+  Feints and learning foes exist only in the Fight Test Room (F.v2) until the owner approves them.
   `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
   Families: no visible requirements, only street rumors. Any family gives any test (ring, sneak, safe, collect) at random;
   each test also picks a random variant (venue, opponent, place). Use clan(fam) for the plural (the Morettis, the Delacroix).

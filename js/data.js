@@ -61,9 +61,10 @@ const PARENTS = [
 // Respect titles, lowest first.
 const RANKS = [[0, 'Nobody'], [10, 'Street Rat'], [25, 'Hustler'], [45, 'Known Face'], [65, 'Feared'], [85, 'Legend']];
 
-// Fight opponents: fight points, hit power, needle speed (sweeps per second) and how often they pick each move.
+// Fight opponents: fight points, hit power, needle speed (`cross` = seconds to cross the meter, otherwise spd x 60
+// percent per second) and how often they pick each move.
 const FOES = {
-  kid: { hp: 30, pow: 8, spd: 0.8, mix: { punch: 2, block: 1, grapple: 1 } },
+  kid: { hp: 30, pow: 8, spd: 0.8, cross: 1.6, mix: { punch: 2, block: 1, grapple: 1 } },
   drunk: { hp: 35, pow: 10, spd: 0.9, mix: { punch: 3, block: 0.5, grapple: 1 } },
   thug: { hp: 50, pow: 14, spd: 1.1, mix: { punch: 1, block: 1, grapple: 1 } },
   gang: { hp: 65, pow: 17, spd: 1.2, mix: { punch: 2, block: 1, grapple: 2 } },

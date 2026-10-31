@@ -311,7 +311,7 @@ const TELLS = { punch: 'pulls a fist back', block: 'raises both arms', grapple: 
 const WIN_TEXT = { punch: 'You caught them coming in.', grapple: 'You got past the guard and slammed them down.', block: 'You blocked and countered.' };
 const LOSE_TEXT = { punch: 'They caught you coming in.', grapple: 'They got past your guard and slammed you down.', block: 'They blocked and countered.' };
 const COUNTER = { punch: 'block', grapple: 'punch', block: 'grapple' }; // what beats each move
-const COST = { punch: 25, grapple: 30, block: 0 }; // stamina, new rules only
+const COST = { punch: 25, grapple: 30, block: 0 }; // stamina
 const cap = s => s[0].toUpperCase() + s.slice(1);
 let F = null; // the fight in progress (not saved)
 
@@ -321,49 +321,49 @@ const brawl = (foe, name, win, lose, flee) => ({ fight: { ...(typeof foe === 'st
 function startFight(r, title) {
   const you = 40 + Math.round(P.health * 0.6);
   F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: r.intro || '' };
-  if (F.v2) Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
+  Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
   fightMenu();
 }
 
 function fightCard(body) {
   const bar = (label, v, max, cls) => `<div class="hp ${cls}"><span>${esc(label)}</span><b>${Math.max(0, v)}</b><i style="--v:${(Math.max(0, v) / max) * 100}%"></i></div>`;
   return `<div class="card fight" role="dialog" aria-modal="true"><p class="kicker">Round ${F.round} · Strength ${P.str}</p><h2>${esc(F.title)}</h2>
-    <div class="hps">${bar('You', F.you, F.youMax, 'me')}${F.v2 ? bar('Stamina', F.stam, F.stamMax, 'stam') : ''}${bar(F.foe.name, F.them, F.foe.hp, 'foe')}</div>
+    <div class="hps">${bar('You', F.you, F.youMax, 'me')}${bar('Stamina', F.stam, F.stamMax, 'stam')}${bar(F.foe.name, F.them, F.foe.hp, 'foe')}</div>
     ${F.last ? `<p class="flog">${esc(F.last)}</p>` : ''}${body}</div>`;
 }
 
+// Each round the needle waits a moment (longer with smarts), then crosses the meter once. The zones are wider with
+// strength and narrower as you get hurt: the bright middle is Perfect, the band around it Solid, the rest Sloppy.
 function fightMenu() {
-  const mix = F.foe.mix, w = 14 + Math.round(P.health / 10);
+  const mix = F.foe.mix;
   let roll = Math.random() * Object.values(mix).reduce((x, y) => x + y, 0);
   F.next = Object.keys(mix).find(k => (roll -= mix[k]) < 0) || 'punch';
   if (F.v2) foeThinks();
-  F.zone = { x: rnd(F.v2 ? 15 : 5, 95 - w), w };
+  const hurt = 0.6 + (0.4 * Math.max(0, F.you)) / F.youMax;
+  const solid = (12 + P.str * 0.12) * hurt, perfect = (4 + P.str * 0.04) * hurt, x = 15 + Math.random() * (85 - solid);
+  F.zone = { x, solid, px: x + (solid - perfect) / 2, perfect };
   F.delay = 200 + P.smarts * 6;
+  F.speed = (F.foe.cross ? 100 / F.foe.cross : F.foe.spd * 60) * (F.stam < 30 ? 1.25 : 1); // percent per second; tired is faster
   const t0 = (F.t0 = performance.now());
   const shown = F.v2 ? F.shown : chance(P.smarts / 130) ? F.next : null;
   const tell = shown ? `${cap(F.foe.name)} ${TELLS[shown]}.` : `You can't read ${F.foe.name}.`;
   showModal(fightCard(`<p class="tell">${esc(tell)}</p>
-    <div class="meter"><i style="left:${F.zone.x}%;width:${w}%"></i><b id="needle"></b></div>
-    <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}${F.v2 ? `<small>${k === 'block' ? '+15' : `−${COST[k]}`} stamina</small>` : ''}</button>`).join('')}</div>
-    <p class="rules">Tap a move while the needle is in the bright zone.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch${F.v2 ? '<br>The needle crosses once: too slow and the hit lands unopposed.<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
+    <div class="meter"><i class="solid" style="left:${x}%;width:${solid}%"></i><i class="perfect" style="left:${F.zone.px}%;width:${perfect}%"></i><b id="needle"></b></div>
+    <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}<small>${k === 'block' ? '+15' : `−${COST[k]}`} stamina</small></button>`).join('')}</div>
+    <p class="rules">Tap a move while the needle is in the bright zone. It crosses only once: hesitate and the hit lands unopposed.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch<br>Punching and grappling cost stamina, blocking gets it back.${F.v2 ? '<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
     <button class="ghost flee" data-do="flee">Run for it</button>`));
   const sweep = () => {
     if (!F || F.t0 !== t0) return; // the next round or the end of the fight stops this loop
     const pos = needlePos();
     $('#needle').style.left = `${pos}%`;
-    if (F.v2 && pos >= 100) return hesitate();
+    if (pos >= 100) return hesitate();
     requestAnimationFrame(sweep);
   };
   requestAnimationFrame(sweep);
 }
 
-// The old needle swings back and forth; under the new rules it crosses once, after a short pause (longer with smarts).
-const needlePos = () => {
-  const t = (performance.now() - F.t0) / 1000;
-  if (F.v2) return Math.min(100, Math.max(0, (t - F.delay / 1000) * F.foe.spd * 60));
-  const ph = (t * F.foe.spd) % 2;
-  return (ph < 1 ? ph : 2 - ph) * 100;
-};
+// One pass: the needle waits F.delay ms, then crosses at F.speed percent per second.
+const needlePos = () => Math.min(100, Math.max(0, ((performance.now() - F.t0 - F.delay) / 1000) * F.speed));
 
 // New rules: the needle ran out before you picked a move, so the opponent's move lands unopposed.
 function hesitate() {
@@ -374,15 +374,13 @@ function hesitate() {
 }
 
 function strike(me) {
-  const pos = needlePos(), { x, w } = F.zone;
-  let [q, label] = pos >= x && pos <= x + w ? [1.5, 'Perfect!'] : pos >= x - 10 && pos <= x + w + 10 ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
-  const gassed = F.v2 && F.stam < COST[me]; // too tired: the move lands at half power
+  const pos = needlePos(), z = F.zone;
+  let [q, label] = pos >= z.px && pos <= z.px + z.perfect ? [1.5, 'Perfect!'] : pos >= z.x && pos <= z.x + z.solid ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
+  const gassed = F.stam < COST[me]; // too tired: the move lands at half power
   if (gassed) label = `Gassed. ${label}`;
-  if (F.v2) {
-    F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' ? 15 : 0) + 10);
-    F.hist.push(me);
-    F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
-  }
+  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' ? 15 : 0) + 10);
+  F.hist.push(me);
+  if (F.v2) F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
   const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1)), theirs = Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * (2 - q));
   const them = F.next;
   let dealt = 0, took = 0, text;
@@ -448,7 +446,7 @@ function foeThinks() {
 
 function fightTestMenu() {
   showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Fight test</p><h2>Pick a Sparring Partner</h2>
-    <p>New rules: the needle crosses only once, so hesitate and you get hit. A tell can be a feint, fighters punish a move you keep repeating, and punching and grappling cost stamina while blocking gets it back. Strength gives you more stamina. Nothing here affects your life.</p>
+    <p>Extra rules here: a tell can be a feint, and fighters punish a move you keep repeating. Nothing here affects your life.</p>
     <div class="choices">${SPARRING.map((f, i) => `<button class="opt" data-ft="${i}">${esc(cap(f.name))} · ${f.level}</button>`).join('')}<button class="ghost" data-ft="close">Close</button></div></div>`);
 }
 
@@ -1021,7 +1019,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.15</p>`];
+      `<p class="ver">Mafiozo 0.16</p>`];
   },
 };
 
