@@ -308,8 +308,9 @@ function perform(kind, id) {
 const MOVES = { punch: 'Punch', block: 'Block', grapple: 'Grapple' };
 const BEATS = { punch: 'grapple', grapple: 'block', block: 'punch' };
 const TELLS = { punch: 'pulls a fist back', block: 'raises both arms', grapple: 'crouches low, arms wide' };
-const WIN_TEXT = { punch: 'You caught them coming in.', grapple: 'You got past the guard and slammed them down.', block: 'You blocked and countered.' };
-const LOSE_TEXT = { punch: 'They caught you coming in.', grapple: 'They got past your guard and slammed you down.', block: 'They blocked and countered.' };
+const WIN_TEXT = { punch: 'You caught them coming in.', grapple: 'You got past the guard and slammed them down.' };
+const LOSE_TEXT = { punch: 'They caught you coming in.', grapple: 'They got past your guard and slammed you down.' };
+const MOVE_ICON = { punch: '👊', block: '🛡️', grapple: '🤼', flee: '🏃' };
 const COUNTER = { punch: 'block', grapple: 'punch', block: 'grapple' }; // what beats each move
 const COST = { punch: 25, grapple: 30, block: 0 }; // stamina
 const cap = s => s[0].toUpperCase() + s.slice(1);
@@ -367,10 +368,11 @@ const needlePos = () => Math.min(100, Math.max(0, ((performance.now() - F.t0 - F
 
 // New rules: the needle ran out before you picked a move, so the opponent's move lands unopposed.
 function hesitate() {
-  const took = F.next === 'block' ? 0 : rnd(F.foe.pow - 3, F.foe.pow + 3);
+  const risk = F.exposed ? 1.5 : 1, took = F.next === 'block' ? 0 : Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * risk);
   F.stam = Math.min(F.stamMax, F.stam + 10);
   F.reads = 0;
-  hitRound(0, took, took ? `Too slow. ${cap(F.foe.name)} hit you clean.` : `Too slow, but ${F.foe.name} only kept a guard up.`);
+  F.opening = F.exposed = false;
+  hitRound(0, took, took ? `${cap(F.foe.name)} hit you clean.` : `${cap(F.foe.name)} only kept a guard up.`, null, 'Too slow.');
 }
 
 function strike(me) {
@@ -381,38 +383,58 @@ function strike(me) {
   F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' ? 15 : 0) + 10);
   F.hist.push(me);
   if (F.v2) F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
-  const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1)), theirs = Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * (2 - q));
-  const them = F.next;
+  const boost = F.opening ? 1.5 : 1, risk = F.exposed ? 1.5 : 1; // someone was left open by a blocked punch last round
+  F.opening = F.exposed = false;
+  const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1) * boost), theirs = Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * (2 - q) * risk);
+  const them = F.next, name = cap(F.foe.name);
   let dealt = 0, took = 0, text;
   if (me === them) {
     if (me === 'block') text = 'You both kept your guard up. Nothing landed.';
     else { dealt = Math.round(mine / 2); took = Math.round(theirs / 2); text = 'You traded blows.'; }
+  } else if (me === 'block' && them === 'punch') { // a block only protects, and leaves the puncher open
+    F.opening = true;
+    text = `You blocked the punch. ${name} is wide open.`;
+  } else if (me === 'punch' && them === 'block') {
+    F.exposed = true;
+    text = `${name} blocked your punch. You are wide open.`;
   } else if (BEATS[me] === them) {
-    dealt = me === 'block' ? Math.round(mine * 0.7) : mine;
+    dealt = mine;
     text = WIN_TEXT[me];
   } else {
-    took = them === 'block' ? Math.round(theirs * 0.7) : theirs;
+    took = theirs;
     text = LOSE_TEXT[them];
   }
   if (F.v2 && F.feint) text += ' It was a feint.';
   if (F.v2 && F.learned && took) text += ` ${cap(F.foe.name)} saw that coming.`;
-  hitRound(dealt, took, `${label} ${text}`);
+  hitRound(dealt, took, text, me, label);
 }
 
-function hitRound(dealt, took, text) {
+// Applies a round, then shows both moves side by side; the next round starts only when the player asks for it.
+function hitRound(dealt, took, text, mine, label = '') {
+  F.t0 = null; // stops this round's needle
   F.them -= dealt;
   F.you -= took;
   F.taken += took;
-  F.last = `${text} (You −${took} · ${cap(F.foe.name)} −${dealt})`;
-  if (F.them <= 0) return endFight('win');
-  if (F.you <= 0) return endFight('lose');
+  F.clash = { mine, label, theirs: F.next, text, dealt, took };
+  F.ended = F.them <= 0 ? 'win' : F.you <= 0 ? 'lose' : null;
+  const c = F.clash, name = cap(F.foe.name);
+  const side = (who, move, note) => `<div><small>${esc(who)}</small><b>${move ? MOVE_ICON[move] : '…'}</b><span>${move ? MOVES[move] || 'Ran' : 'Nothing'}</span>${note ? `<em>${esc(note)}</em>` : ''}</div>`;
+  showModal(fightCard(`<div class="clash">${side('You', c.mine, c.label)}<i>vs</i>${side(name, c.theirs)}</div>
+    <p class="flog">${esc(c.text)} (You −${c.took} · ${esc(name)} −${c.dealt})</p>
+    <button class="primary next" data-do="fightNext">${F.ended ? 'Continue' : 'Next round'}</button>`));
+}
+
+function fightNext() {
+  if (!F) return;
+  if (F.ended) return endFight(F.ended);
   F.round++;
+  F.last = F.opening ? `${cap(F.foe.name)} is wide open: your move lands 50% harder.` : F.exposed ? 'You are wide open: the next hit against you lands 50% harder.' : '';
   fightMenu();
 }
 
 function flee() {
   if (chance(0.35 + P.health / 300)) return endFight('flee');
-  hitRound(0, rnd(F.foe.pow - 3, F.foe.pow + 3), 'You tried to run. They dragged you back.');
+  hitRound(0, rnd(F.foe.pow - 3, F.foe.pow + 3), 'You tried to run and got dragged back.', 'flee');
 }
 
 function endFight(kind) {
@@ -1019,7 +1041,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.16</p>`];
+      `<p class="ver">Mafiozo 0.17</p>`];
   },
 };
 
@@ -1113,6 +1135,7 @@ const DO = {
   age: ageUp,
   next() { hideModal(); if (P.alive) nextEvent(); else render(); },
   randomize,
+  fightNext,
   sneakTest() { closeSheet(); startSneak({ room: SNEAK_TEST }); },
   safeTest() { closeSheet(); startSafeTest(); },
   memoryTest() { closeSheet(); startMemoryTest(); },
