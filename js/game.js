@@ -28,7 +28,7 @@ const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >=
 
 function newLife(first, last, gender) {
   P = {
-    first, last, gender, age: 0, born: new Date().getFullYear(), district: pick(DISTRICTS),
+    first, last, gender, age: 0, born: new Date().getFullYear() - 5, district: pick(DISTRICTS),
     money: 0, health: rnd(75, 100), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
     job: null, prison: 0, inmate: rnd(10000, 99999), alive: true, cause: '',
     flags: {}, seen: {}, done: {}, pending: [], tally: { crimes: 0, arrests: 0, served: 0, peak: 0 }, log: [],
@@ -36,8 +36,14 @@ function newLife(first, last, gender) {
   newYear();
   note(`You were born in ${CITY}, in ${P.district}. It's a ${gender === 'M' ? 'boy' : 'girl'}.`);
   note(pick(PARENTS));
+  const kid = EVENTS.find(e => e.id === 'kid'); // a couple of early memories
+  [...new Set([kid.auto(P).text, kid.auto(P).text])].forEach(t => note(t));
+  P.age = 5; // life starts in earnest at five, with the first challenge
+  newYear();
+  queueChallenge();
   save();
   render();
+  nextEvent();
 }
 
 function newYear() {
@@ -192,10 +198,22 @@ function ageUp() {
   if (P.alive) {
     if (chance(0.75)) queueEvent();
     if (chance(0.2)) queueEvent();
+    queueChallenge(); // goes first, before the random events
   }
   save();
   render();
   if (P.alive) nextEvent();
+}
+
+// The yearly challenge: one scene that fits the age, never the same one twice in a row when there is a choice.
+function queueChallenge() {
+  if (P.prison) return;
+  const fits = CHALLENGES.filter(c => P.age >= c.min && P.age <= c.max);
+  const pool = fits.filter(c => c.id !== P.lastChallenge), ch = pick(pool.length ? pool : fits);
+  if (!ch) return;
+  P.lastChallenge = ch.id;
+  const e = EVENTS.find(x => x.id === ch.id);
+  P.pending.unshift({ id: e.id, c: makeCtx(e) });
 }
 
 const eligible = e => (P.prison ? e.inside || e.anywhere : !e.inside) && e.when(P);
@@ -302,7 +320,7 @@ const brawl = (foe, name, win, lose, flee) => ({ fight: { ...(typeof foe === 'st
 
 function startFight(r, title) {
   const you = 40 + Math.round(P.health * 0.6);
-  F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: '' };
+  F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: r.intro || '' };
   if (F.v2) Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
   fightMenu();
 }
@@ -408,7 +426,7 @@ function endFight(kind) {
       <div class="choices"><button class="primary" data-ft="${testFoe}">Fight again</button><button class="opt" data-ft="menu">Pick another opponent</button><button class="ghost" data-ft="close">Close</button></div></div>`);
   }
   const r = F[kind] ? F[kind](F) : meh('You ran. Your pride did not make it.', { respect: -2 });
-  r.fx = { ...r.fx, health: (r.fx.health || 0) - Math.round(F.taken * 0.35) };
+  if (!r.exact) r.fx = { ...r.fx, health: (r.fx.health || 0) - Math.round(F.taken * 0.35) }; // `exact` outcomes set their own injuries
   const title = F.title;
   F = null;
   resolve(r, title);
@@ -1003,7 +1021,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.14</p>`];
+      `<p class="ver">Mafiozo 0.15</p>`];
   },
 };
 
@@ -1029,7 +1047,7 @@ function render() {
   const [status, hot] = P.prison ? [`Inmate #${P.inmate} · ${plural(P.prison, 'year')} left`, true]
     : P.flags.fugitive ? ['Fugitive', true]
     : [P.job ? P.job.title : P.age < 5 ? 'Child' : P.age < 18 ? 'Student' : 'Unemployed', false];
-  const log = P.log.map(y => `<section class="yr"><h3>Age ${y.age} · ${P.born + y.age}</h3>${y.items
+  const log = P.log.map(y => `<section class="yr"><h3>${y.age ? `Age ${y.age}` : 'Born'} · ${P.born + y.age}</h3>${y.items
     .map(it => `<p class="${it.tone}">${esc(it.text)}${it.fx ? `<small>${esc(it.fx)}</small>` : ''}</p>`).join('')}</section>`).join('');
   const bars = STATS.map(([k, label]) => {
     const v = P[k], warn = k === 'heat' ? v >= 50 : k === 'health' && v < 25;

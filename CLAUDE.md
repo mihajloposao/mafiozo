@@ -64,6 +64,11 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    The first challenge runs right at the start, at age 5. Childhood scenarios (ages 5-12) are detailed one by one.
    Chosen first childhood stories (each still to be detailed): chess with grandpa; schoolyard fight (with a choice to
    fight or not); slingshot and cans; school quiz (with a chance to cheat); school cross-country run (with variations).
+   Built: CHALLENGES (data.js) + queueChallenge() run one scene per year before the random events (not in prison);
+   a life starts at 5 with a 'Born' log block. Done stories: 'yard' (schoolyard fight: hit first soul-3 respect+2 then fight;
+   back off soul+3 respect-4; teacher respect-8; joke succeeds (smarts) respect+4 or fails respect-3 then fight;
+   fight great/ok/bad/fled set str/respect/health exactly). Automatic stat growth is still on until the childhood set
+   covers every stat.
    Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.
    Childhood ideas: defend the new kid being teased; carry the old neighbor's bags; find a lost dog's owner;
    broke a window with a ball (own up or run); late home (lie or tell the truth).

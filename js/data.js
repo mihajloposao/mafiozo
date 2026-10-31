@@ -70,6 +70,30 @@ const FOES = {
   brute: { hp: 80, pow: 21, spd: 1.3, mix: { punch: 3, block: 1, grapple: 1 } },
 };
 
+// The yearly challenge: each year one scene (event id) that fits the age runs before the random events.
+const CHALLENGES = [
+  { id: 'yard', min: 5, max: 12 },
+];
+
+// Why the schoolyard fight starts ({n} is the other kid).
+const YARD_WHYS = [
+  '{n}, a kid from the year above, threw your lunch in the mud in front of everyone.',
+  '{n} took your ball at recess and will not give it back.',
+  '{n} said something about your mother, loud enough for the whole class to hear.',
+  '{n} wants half your lunch, every day, starting today.',
+];
+
+// The schoolyard fight. What you chose before it (`base`) adds to how the fight went. A clean win is one where you
+// lost less than a third of your fight points; these outcomes set their own injuries (`exact`).
+function yardFight(c, base, intro = '') {
+  const add = fx => { const o = { ...fx }; for (const k in base) o[k] = (o[k] || 0) + base[k]; return o; };
+  return { ...brawl('kid', c.first,
+    f => ({ ...ok(f.taken < f.youMax / 3 ? `You put ${c.first} on the ground in front of the whole school.` : 'You won, but only just.',
+      add(f.taken < f.youMax / 3 ? { str: 3, respect: 5, health: -rnd(1, 3) } : { str: 2, respect: 2, health: -rnd(3, 6) })), exact: true }),
+    () => ({ ...bad(`${c.first} beat you in front of everyone.`, add({ str: 1, respect: -3, health: -rnd(5, 10) })), exact: true }),
+    () => meh('You ran. The whole school saw it.', add({ respect: -5 }))), intro };
+}
+
 // Sparring partners for the fight test room (new fight rules): how often they fake their tell (`feint`)
 // how readily they punish a move you keep repeating (`learn`), and how easy their tells are to spot (`read`).
 const SPARRING = [
@@ -392,6 +416,16 @@ const JOBS = [
 // come from hanging on the corner. `scene` events only run when you start them (see FAMILY_INFO). Context `c`: first, last, full, n (with nickname),
 // crew, rival, fam, cop, plus whatever `ctx` adds. Write NPC lines without pronouns.
 const EVENTS = [
+  { id: 'yard', title: 'Schoolyard Fight', scene: true, when: () => true, ctx: () => ({ why: pick(YARD_WHYS) }),
+    text: (p, c) => `${c.why.replace('{n}', c.first)} A circle of kids is already forming around you two.`,
+    choices: [
+      { label: 'Hit first', run: (p, c) => yardFight(c, { soul: -3, respect: 2 }) },
+      { label: 'Back off', run: (p, c) => meh(`You walked away. ${c.first} laughed, and so did half the yard.`, { soul: 3, respect: -4 }) },
+      { label: 'Tell the teacher', run: (p, c) => meh(`${c.first} got detention. You got a new nickname: snitch.`, { respect: -8 }) },
+      { label: 'Make fun of them', run: (p, c) => (chance(0.25 + p.smarts / 200)
+        ? ok(`One joke, and the whole yard was laughing at ${c.first} instead of you.`, { respect: 4 })
+        : yardFight(c, { respect: -3 }, `The joke fell flat. Nobody laughed, and ${c.first} swung first.`)) },
+    ] },
   { id: 'ring', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
     ctx: () => ({ venue: pick(VOLKOV_VENUES), foe: pick(VOLKOV_FIGHTERS) }),
     text: (p, c) => `${c.venue.replace('{clan}', clan(c.fam))} A ${c.fam} lieutenant looks you over. "You want in? Here, you fight. Tonight it is ${c.foe.name}." ${c.foe.note}`,
