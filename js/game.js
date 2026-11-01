@@ -376,7 +376,6 @@ const needlePos = () => Math.min(100, Math.max(0, ((performance.now() - F.t0 - F
 // New rules: the needle ran out before you picked a move, so the opponent's move lands unopposed.
 function hesitate() {
   const risk = (F.exposed ? 1.5 : 1) * (F.fstam < COST[F.next] ? 0.5 : 1), took = F.next === 'block' ? 0 : Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * risk);
-  F.stam = Math.min(F.stamMax, F.stam + 10);
   F.reads = 0;
   F.opening = F.exposed = false;
   hitRound(0, took, took ? `${cap(F.foe.name)} hit you clean.` : `${cap(F.foe.name)} only kept a guard up.`, null, 'Too slow.');
@@ -387,7 +386,7 @@ function strike(me) {
   let [q, label] = pos >= z.px && pos <= z.px + z.perfect ? [1.5, 'Perfect!'] : pos >= z.x && pos <= z.x + z.solid ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
   const gassed = F.stam < COST[me]; // too tired: the move lands at half power
   if (gassed) label = `Gassed. ${label}`;
-  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' && q > 0.5 ? 15 : 0) + 10); // a sloppy block is no rest
+  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' && q > 0.5 ? 15 : 0)); // only a good block brings stamina back
   F.hist.push(me);
   if (F.v2) F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
   const boost = F.opening ? 1.5 : 1, risk = F.exposed ? 1.5 : 1; // someone was left open by a blocked punch last round
@@ -423,7 +422,7 @@ function strike(me) {
 // Applies a round, then shows both moves side by side; the next round starts only when the player asks for it.
 function hitRound(dealt, took, text, mine, label = '', flabel = '') {
   F.t0 = null; // stops this round's needle
-  F.fstam = Math.min(F.fstamMax, Math.max(0, F.fstam - COST[F.next]) + (F.next === 'block' ? 15 : 0) + 10);
+  F.fstam = Math.min(F.fstamMax, Math.max(0, F.fstam - COST[F.next]) + (F.next === 'block' ? 15 : 0));
   F.them -= dealt;
   F.you -= took;
   F.taken += took;
@@ -1056,7 +1055,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.21</p>`];
+      `<p class="ver">Mafiozo 0.22</p>`];
   },
 };
 
