@@ -16,7 +16,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 ## Conventions
 - Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, str, smarts, respect, heat, soul (soul -100..100).
 - Health is shown as HP and is your fight points: a life starts with 1-35, bell-shaped around 26 (childHp), capped at 35 up to age 12 and 100 later
-  (how HP grows and heals is not designed yet; the old yearly heal +2-5 still runs).
+  (how HP grows and heals is not designed yet; there is no yearly heal).
 - Keep it simple: six stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one move per fight round.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
@@ -79,8 +79,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    Built: CHALLENGES (data.js) + queueChallenge() run one scene per year before the random events (not in prison);
    a life starts at 5 with a 'Born' log block. Done stories: 'yard' (schoolyard fight: hit first soul-3 respect+2 then fight;
    back off soul+3 respect-4; teacher respect-8; joke succeeds (smarts) respect+4 or fails respect-3 then fight;
-   fight great/ok/bad/fled set str/respect/health exactly). Automatic stat growth is still on until the childhood set
-   covers every stat.
+   fight great/ok/bad/fled set str/respect/health exactly). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
+   smarts/strength/HP growth and the prison respect were removed; heat still cools by itself.
    All random yearly events from the first prototype were removed (owner: only agreed content). queueEvent and tags
    remain for new agreed events; KID_MEMORIES feeds the 'Born' block.
    Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.

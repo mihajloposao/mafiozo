@@ -185,21 +185,18 @@ function ageUp() {
   if (P.prison > 0) {
     P.prison--;
     P.tally.served++;
-    applyFx({ respect: 1 });
     if (P.prison) note(`Another year inside. ${plural(P.prison, 'year')} to go.`);
     else note('You walked out of the gates a free person.', 'good');
   } else {
     if (a === 5) note('You started school at P.S. 41.');
-    if (a >= 6 && a <= 18) applyFx({ smarts: rnd(0, 3) });
-    if (a >= 10 && a <= 20) applyFx({ str: rnd(0, 2) });
     if (a === 18) note(P.smarts >= 35 ? 'You graduated from Velmora High.' : 'You dropped out of Velmora High.');
     if (P.job) {
       applyFx({ money: P.job.salary, heat: -3 });
       note(`You earned ${cash(P.job.salary)} as a ${P.job.title}.`);
     }
   }
-  // Health tracks injuries, not illness: wounds heal a little every year.
-  applyFx({ health: rnd(2, 5), heat: -rnd(4, 9) });
+  // No stat grows by itself until the owner agrees how it should; heat still cools off every year.
+  applyFx({ heat: -rnd(4, 9) });
   if (P.health <= 0) die('Your body gave out');
   else if (a > 60 && chance(((a - 60) ** 2 / 1600) * (1.6 - P.health / 100))) die(pick(['Heart attack', 'Stroke', 'Old age']));
   if (P.alive) {
@@ -1072,7 +1069,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.25</p>`];
+      `<p class="ver">Mafiozo 0.26</p>`];
   },
 };
 
