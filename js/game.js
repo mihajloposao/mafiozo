@@ -36,8 +36,7 @@ function newLife(first, last, gender) {
   newYear();
   note(`You were born in ${CITY}, in ${P.district}. It's a ${gender === 'M' ? 'boy' : 'girl'}.`);
   note(pick(PARENTS));
-  const kid = EVENTS.find(e => e.id === 'kid'); // a couple of early memories
-  [...new Set([kid.auto(P).text, kid.auto(P).text])].forEach(t => note(t));
+  [...new Set([pick(KID_MEMORIES), pick(KID_MEMORIES)])].forEach(t => note(t)); // a couple of early memories
   P.age = 5; // life starts in earnest at five, with the first challenge
   newYear();
   queueChallenge();
@@ -323,6 +322,7 @@ function startFight(r, title) {
   const you = 40 + Math.round(P.health * 0.6);
   F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: r.intro || '' };
   Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
+  F.fstam = F.fstamMax = 70 + F.foe.pow * 2; // the opponent's stamina, same costs as yours
   fightMenu();
 }
 
@@ -339,6 +339,7 @@ function fightMenu() {
   const mix = F.foe.mix;
   let roll = Math.random() * Object.values(mix).reduce((x, y) => x + y, 0);
   F.next = Object.keys(mix).find(k => (roll -= mix[k]) < 0) || 'punch';
+  if (F.fstam < 30 && F.next !== 'block' && chance(0.6)) F.next = 'block'; // a tired opponent backs off to catch a breath
   if (F.v2) foeThinks();
   const hurt = 0.6 + (0.4 * Math.max(0, F.you)) / F.youMax;
   const solid = (12 + P.str * 0.12) * hurt, perfect = (4 + P.str * 0.04) * hurt, x = 15 + Math.random() * (85 - solid);
@@ -347,7 +348,7 @@ function fightMenu() {
   F.speed = (F.foe.cross ? 100 / F.foe.cross : F.foe.spd * 60) * (F.stam < 30 ? 1.25 : 1); // percent per second; tired is faster
   const t0 = (F.t0 = performance.now());
   const shown = F.v2 ? F.shown : chance(P.smarts / 130) ? F.next : null;
-  const tell = shown ? `${cap(F.foe.name)} ${TELLS[shown]}.` : `You can't read ${F.foe.name}.`;
+  const tell = (shown ? `${cap(F.foe.name)} ${TELLS[shown]}.` : `You can't read ${F.foe.name}.`) + (F.fstam < 30 ? ` ${cap(F.foe.name)} is out of breath.` : '');
   showModal(fightCard(`<p class="tell">${esc(tell)}</p>
     <div class="meter"><i class="solid" style="left:${x}%;width:${solid}%"></i><i class="perfect" style="left:${F.zone.px}%;width:${perfect}%"></i><b id="needle"></b></div>
     <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}<small>${k === 'block' ? '+15' : `−${COST[k]}`} stamina</small></button>`).join('')}</div>
@@ -368,7 +369,7 @@ const needlePos = () => Math.min(100, Math.max(0, ((performance.now() - F.t0 - F
 
 // New rules: the needle ran out before you picked a move, so the opponent's move lands unopposed.
 function hesitate() {
-  const risk = F.exposed ? 1.5 : 1, took = F.next === 'block' ? 0 : Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * risk);
+  const risk = (F.exposed ? 1.5 : 1) * (F.fstam < COST[F.next] ? 0.5 : 1), took = F.next === 'block' ? 0 : Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * risk);
   F.stam = Math.min(F.stamMax, F.stam + 10);
   F.reads = 0;
   F.opening = F.exposed = false;
@@ -385,9 +386,10 @@ function strike(me) {
   if (F.v2) F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
   const boost = F.opening ? 1.5 : 1, risk = F.exposed ? 1.5 : 1; // someone was left open by a blocked punch last round
   F.opening = F.exposed = false;
-  const hit = rnd(F.foe.pow - 3, F.foe.pow + 3) * risk; // the opponent's blow before your timing counts
-  const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1) * boost), theirs = Math.round(hit * (2 - q));
   const them = F.next, name = F.foe.name, Name = cap(name); // Name starts a sentence
+  const foeTired = F.fstam < COST[them]; // an opponent out of breath hits at half power too
+  const hit = rnd(F.foe.pow - 3, F.foe.pow + 3) * risk * (foeTired ? 0.5 : 1); // the opponent's blow before your timing counts
+  const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1) * boost), theirs = Math.round(hit * (2 - q));
   let dealt = 0, took = 0, text;
   if (me === them) {
     if (me === 'block') text = 'You both kept your guard up. Nothing landed.';
@@ -409,20 +411,21 @@ function strike(me) {
   }
   if (F.v2 && F.feint) text += ' It was a feint.';
   if (F.v2 && F.learned && took) text += ` ${cap(F.foe.name)} saw that coming.`;
-  hitRound(dealt, took, text, me, label);
+  hitRound(dealt, took, text, me, label, foeTired ? 'Gassed.' : '');
 }
 
 // Applies a round, then shows both moves side by side; the next round starts only when the player asks for it.
-function hitRound(dealt, took, text, mine, label = '') {
+function hitRound(dealt, took, text, mine, label = '', flabel = '') {
   F.t0 = null; // stops this round's needle
+  F.fstam = Math.min(F.fstamMax, Math.max(0, F.fstam - COST[F.next]) + (F.next === 'block' ? 15 : 0) + 10);
   F.them -= dealt;
   F.you -= took;
   F.taken += took;
-  F.clash = { mine, label, theirs: F.next, text, dealt, took };
+  F.clash = { mine, label, theirs: F.next, flabel, text, dealt, took };
   F.ended = F.them <= 0 ? 'win' : F.you <= 0 ? 'lose' : null;
   const c = F.clash, name = cap(F.foe.name);
   const side = (who, move, note) => `<div><small>${esc(who)}</small><b>${move ? MOVE_ICON[move] : '…'}</b><span>${move ? MOVES[move] || 'Ran' : 'Nothing'}</span>${note ? `<em>${esc(note)}</em>` : ''}</div>`;
-  showModal(fightCard(`<div class="clash">${side('You', c.mine, c.label)}<i>vs</i>${side(name, c.theirs)}</div>
+  showModal(fightCard(`<div class="clash">${side('You', c.mine, c.label)}<i>vs</i>${side(name, c.theirs, c.flabel)}</div>
     <p class="flog">${esc(c.text)} (You −${c.took} · ${esc(name)} −${c.dealt})</p>
     <button class="primary next" data-do="fightNext">${F.ended ? 'Continue' : 'Next round'}</button>`));
 }
@@ -1047,7 +1050,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.18</p>`];
+      `<p class="ver">Mafiozo 0.19</p>`];
   },
 };
 

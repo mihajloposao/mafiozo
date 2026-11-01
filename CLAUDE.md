@@ -23,6 +23,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   A block never deals damage, and timing grades every move: block vs punch: Perfect = blocked and the puncher is open
   (next move 50% harder), Solid = blocked, Sloppy = half gets through; punch vs block: Perfect = half damage through the
   guard, Solid = blocked, Sloppy = blocked and you are open. Fleeing depends on fight points and stamina left.
+  The opponent has stamina too (70 + 2 x pow, same costs): tired it hits at half power and backs off into blocks.
   After every round a reveal shows both moves and the damage; the next round starts on 'Next round'.
   Feints and learning foes exist only in the Fight Test Room (F.v2) until the owner approves them.
   `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
@@ -56,8 +57,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
       rank perks (yearly income, family lawyer), the boss takes a cut.
    2. Joining by chance: a family notices you after something memorable (big score, won fight). Small step.
    3. Founding your own family (b below). 4. Conflicts and the road to Don (c below).
-   Small cleanups on the way: drop the old 'family' event ("A Man in a Good Suit", only sets flags.family);
-   remove the three test rooms from Profile once the owner no longer needs them.
+   Small cleanups on the way: remove the three test rooms from Profile once the owner no longer needs them.
    b. Founding your own family: name a crew, recruit, take Velmora districts one by one (crew, gang, family); existing families see a threat.
    c. Conflicts and the road to Don for both paths: succession or coup, DA deal to testify, loyalty tests, family wars.
    Later: relationships (family members, partner, heirs, crew friends).
@@ -76,6 +76,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    back off soul+3 respect-4; teacher respect-8; joke succeeds (smarts) respect+4 or fails respect-3 then fight;
    fight great/ok/bad/fled set str/respect/health exactly). Automatic stat growth is still on until the childhood set
    covers every stat.
+   All random yearly events from the first prototype were removed (owner: only agreed content). queueEvent and tags
+   remain for new agreed events; KID_MEMORIES feeds the 'Born' block.
    Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.
    Childhood ideas: defend the new kid being teased; carry the old neighbor's bags; find a lost dog's owner;
    broke a window with a ball (own up or run); late home (lie or tell the truth).
