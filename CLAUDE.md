@@ -20,7 +20,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   Fights: the needle crosses once (too slow = the hit lands unopposed); Perfect/Solid zones widen with strength and shrink
   when hurt; stamina (punch -25, grapple -30, block +15, +10 a round, tired = half power, needle 25% faster under 30).
-  A block never deals damage: blocking a punch leaves the puncher open (next move 50% harder for the blocker).
+  A block never deals damage, and timing grades every move: block vs punch: Perfect = blocked and the puncher is open
+  (next move 50% harder), Solid = blocked, Sloppy = half gets through; punch vs block: Perfect = half damage through the
+  guard, Solid = blocked, Sloppy = blocked and you are open. Fleeing depends on fight points and stamina left.
   After every round a reveal shows both moves and the damage; the next round starts on 'Next round'.
   Feints and learning foes exist only in the Fight Test Room (F.v2) until the owner approves them.
   `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
