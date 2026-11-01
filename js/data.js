@@ -72,7 +72,7 @@ const RANKS = [[0, 'Nobody'], [10, 'Street Rat'], [25, 'Hustler'], [45, 'Known F
 // Fight opponents: fight points, hit power (or str/health ranges: then built like you, see fighter() in game.js), needle speed (`cross` = seconds to cross the meter, otherwise spd x 60
 // percent per second) and how often they pick each move.
 const FOES = {
-  kid: { str: [5, 20], health: [25, 35], spd: 0.8, cross: 1.6, mix: { punch: 2, block: 1, grapple: 1 } },
+  kid: { str: [5, 20], health: () => childHp(), spd: 0.8, cross: 1.6, mix: { punch: 2, block: 1, grapple: 1 } },
   drunk: { hp: 35, pow: 10, spd: 0.9, mix: { punch: 3, block: 0.5, grapple: 1 } },
   thug: { hp: 50, pow: 14, spd: 1.1, mix: { punch: 1, block: 1, grapple: 1 } },
   gang: { hp: 65, pow: 17, spd: 1.2, mix: { punch: 2, block: 1, grapple: 2 } },

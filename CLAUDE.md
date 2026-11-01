@@ -15,7 +15,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 
 ## Conventions
 - Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, str, smarts, respect, heat, soul (soul -100..100).
-- Health is shown as HP and is your fight points: a life starts with 25-35, capped at 35 up to age 12 and 100 later
+- Health is shown as HP and is your fight points: a life starts with 1-35, bell-shaped around 26 (childHp), capped at 35 up to age 12 and 100 later
   (how HP grows and heals is not designed yet; the old yearly heal +2-5 still runs).
 - Keep it simple: six stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one move per fight round.
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
@@ -28,7 +28,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   A block never deals damage, and timing grades every move (an incoming hit: Perfect x0.5, Solid x1, Sloppy x1.5): block vs punch: Perfect = blocked and the puncher is open
   (next move 50% harder), Solid = blocked, Sloppy = half gets through; punch vs block: Perfect = half damage through the
   guard, Solid = blocked, Sloppy = blocked and you are open. Fleeing depends on fight points and stamina left.
-  The opponent has stamina too (70 + 2 x pow, same costs; the yard kid is built from str 5-20 / HP 25-35 by your own formulas): tired it hits softer (to 60%) and backs off into blocks under 30.
+  The opponent has stamina too (70 + 2 x pow, same costs; the yard kid is built from str 5-20 / childHp() by your own formulas): tired it hits softer (to 60%) and backs off into blocks under 30.
   After every round a reveal shows both moves and the damage; the next round starts on 'Next round'.
   Feints and learning foes exist only in the Fight Test Room (F.v2) until the owner approves them.
   `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).

@@ -11,6 +11,13 @@ const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const chance = p => Math.random() < p;
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+// Starting HP for a child: 1-35, bell-shaped around 26 (a draw outside the range is drawn again).
+function childHp() {
+  for (;;) {
+    const v = Math.round(26 + 6 * Math.sqrt(-2 * Math.log(1 - Math.random())) * Math.cos(2 * Math.PI * Math.random()));
+    if (v >= 1 && v <= 35) return v;
+  }
+}
 const hpMax = () => (P.age <= 12 ? 35 : 100); // HP (the health stat) is capped at 35 in childhood, 100 later
 const cash = n => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
@@ -30,7 +37,7 @@ const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >=
 function newLife(first, last, gender) {
   P = {
     first, last, gender, age: 0, born: new Date().getFullYear() - 5, district: pick(DISTRICTS),
-    money: 0, health: rnd(25, 35), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
+    money: 0, health: childHp(), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
     job: null, prison: 0, inmate: rnd(10000, 99999), alive: true, cause: '',
     flags: {}, seen: {}, done: {}, pending: [], tally: { crimes: 0, arrests: 0, served: 0, peak: 0 }, log: [],
   };
@@ -321,7 +328,7 @@ let F = null; // the fight in progress (not saved)
 // A foe with str/health ranges is built by your own rules: HP from health, punch and stamina formulas as you.
 const fighter = f => {
   if (!f.str) return f;
-  const s = rnd(...f.str), h = rnd(...f.health);
+  const s = rnd(...f.str), h = typeof f.health === 'function' ? f.health() : rnd(...f.health);
   return { ...f, hp: h, pow: Math.round(12 + s / 4), stam: 60 + Math.round(s * 0.6) };
 };
 const brawl = (foe, name, win, lose, flee) => ({ fight: { ...fighter(typeof foe === 'string' ? FOES[foe] : foe), name }, win, lose, flee });
@@ -1065,7 +1072,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.24</p>`];
+      `<p class="ver">Mafiozo 0.25</p>`];
   },
 };
 
