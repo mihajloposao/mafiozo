@@ -1,7 +1,7 @@
 // Mafiozo – engine and UI. Game content (crimes, events, names) lives in data.js.
 
 const SAVE_KEY = 'mafiozo.save.v1';
-const STATS = [['health', 'Health'], ['str', 'Strength'], ['smarts', 'Smarts'], ['respect', 'Respect'], ['heat', 'Heat'], ['soul', 'Soul']]; // soul runs -100 (evil) to +100 (good)
+const STATS = [['health', 'HP'], ['str', 'Strength'], ['smarts', 'Smarts'], ['respect', 'Respect'], ['heat', 'Heat'], ['soul', 'Soul']]; // soul runs -100 (evil) to +100 (good)
 const LABEL = Object.fromEntries(STATS);
 let P = null; // the life being played, saved after every change
 
@@ -11,6 +11,7 @@ const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 const chance = p => Math.random() < p;
 const pick = list => list[Math.floor(Math.random() * list.length)];
 const clamp = (v, lo = 0, hi = 100) => Math.max(lo, Math.min(hi, v));
+const hpMax = () => (P.age <= 12 ? 35 : 100); // HP (the health stat) is capped at 35 in childhood, 100 later
 const cash = n => (n < 0 ? '-$' : '$') + Math.abs(Math.round(n)).toLocaleString('en-US');
 const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`;
 const esc = s => String(s).replace(/[&<>"']/g, ch => `&#${ch.charCodeAt(0)};`);
@@ -29,7 +30,7 @@ const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >=
 function newLife(first, last, gender) {
   P = {
     first, last, gender, age: 0, born: new Date().getFullYear() - 5, district: pick(DISTRICTS),
-    money: 0, health: rnd(75, 100), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
+    money: 0, health: rnd(25, 35), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
     job: null, prison: 0, inmate: rnd(10000, 99999), alive: true, cause: '',
     flags: {}, seen: {}, done: {}, pending: [], tally: { crimes: 0, arrests: 0, served: 0, peak: 0 }, log: [],
   };
@@ -66,7 +67,7 @@ function applyFx(fx = {}) {
       if (P.money !== before) parts.push((v > 0 ? '+' : '') + cash(P.money - before));
     } else {
       const before = P[k];
-      P[k] = clamp(P[k] + v, k === 'soul' ? -100 : 0);
+      P[k] = clamp(P[k] + v, k === 'soul' ? -100 : 0, k === 'health' ? hpMax() : 100);
       const d = P[k] - before;
       if (d) parts.push(`${LABEL[k]} ${d > 0 ? '+' : ''}${d}`);
     }
@@ -304,7 +305,7 @@ function perform(kind, id) {
 // Each round the opponent picks a move and you pick yours while the needle crosses. Punch hits hardest but a block
 // stops it; Grapple hits softer but breaks a block and drains stamina; Block stops a punch and gets stamina back;
 // Punch against Grapple: both land. Where the needle is grades your timing for every move, blocks included.
-// Strength sets your hit power and zone size, health your fight points, smarts can reveal the next move;
+// Strength sets your hit power and zone size, HP (the health stat) your fight points, smarts can reveal the next move;
 // lost stamina makes the needle faster and the zones narrower.
 const MOVES = { punch: 'Punch', block: 'Block', grapple: 'Grapple' };
 const TELLS = { punch: 'pulls a fist back', block: 'raises both arms', grapple: 'crouches low, arms wide' };
@@ -317,16 +318,16 @@ const cap = s => s[0].toUpperCase() + s.slice(1);
 let F = null; // the fight in progress (not saved)
 
 // `foe` is a key of FOES or a fighter object; win/lose/flee get the final fight state.
-// A foe with str/health ranges is built by your own rules: same fight points, punch and stamina formulas as you.
+// A foe with str/health ranges is built by your own rules: HP from health, punch and stamina formulas as you.
 const fighter = f => {
   if (!f.str) return f;
   const s = rnd(...f.str), h = rnd(...f.health);
-  return { ...f, hp: 40 + Math.round(h * 0.6), pow: Math.round(12 + s / 4), stam: 60 + Math.round(s * 0.6) };
+  return { ...f, hp: h, pow: Math.round(12 + s / 4), stam: 60 + Math.round(s * 0.6) };
 };
 const brawl = (foe, name, win, lose, flee) => ({ fight: { ...fighter(typeof foe === 'string' ? FOES[foe] : foe), name }, win, lose, flee });
 
 function startFight(r, title) {
-  const you = 40 + Math.round(P.health * 0.6);
+  const you = Math.max(1, P.health); // you fight with the HP you have
   F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: r.intro || '' };
   Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
   F.fstam = F.fstamMax = F.foe.stam || 70 + F.foe.pow * 2; // the opponent's stamina, same costs as yours
@@ -1064,7 +1065,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.23</p>`];
+      `<p class="ver">Mafiozo 0.24</p>`];
   },
 };
 
@@ -1093,9 +1094,9 @@ function render() {
   const log = P.log.map(y => `<section class="yr"><h3>${y.age ? `Age ${y.age}` : 'Born'} · ${P.born + y.age}</h3>${y.items
     .map(it => `<p class="${it.tone}">${esc(it.text)}${it.fx ? `<small>${esc(it.fx)}</small>` : ''}</p>`).join('')}</section>`).join('');
   const bars = STATS.map(([k, label]) => {
-    const v = P[k], warn = k === 'heat' ? v >= 50 : k === 'health' && v < 25;
+    const v = P[k], warn = k === 'heat' ? v >= 50 : k === 'health' && v < hpMax() / 4;
     if (k === 'soul') return `<div class="stat soul${v < 0 ? ' neg' : ''}"><b>${v > 0 ? '+' : ''}${v}</b><span>${label}</span><i style="--l:${v < 0 ? 50 + v / 2 : 50}%;--w:${Math.abs(v) / 2}%"></i></div>`; // fills out from the middle
-    return `<div class="stat ${k}${warn ? ' warn' : ''}"><b>${v}</b><span>${label}</span><i style="--v:${v}%"></i></div>`;
+    return `<div class="stat ${k}${warn ? ' warn' : ''}"><b>${v}</b><span>${label}</span><i style="--v:${k === 'health' ? Math.min(100, (v / hpMax()) * 100) : v}%"></i></div>`;
   }).join('');
   app.innerHTML = `
     <header class="top">
