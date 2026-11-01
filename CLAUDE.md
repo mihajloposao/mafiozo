@@ -23,7 +23,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   A block never deals damage, and timing grades every move: block vs punch: Perfect = blocked and the puncher is open
   (next move 50% harder), Solid = blocked, Sloppy = half gets through; punch vs block: Perfect = half damage through the
   guard, Solid = blocked, Sloppy = blocked and you are open. Fleeing depends on fight points and stamina left.
-  The opponent has stamina too (70 + 2 x pow, same costs): tired it hits at half power and backs off into blocks.
+  The opponent has stamina too (70 + 2 x pow, same costs; the yard kid is built from str 5-20 / health 75-100 by your own formulas): tired it hits at half power and backs off into blocks.
   After every round a reveal shows both moves and the damage; the next round starts on 'Next round'.
   Feints and learning foes exist only in the Fight Test Room (F.v2) until the owner approves them.
   `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).

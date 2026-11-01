@@ -316,13 +316,19 @@ const cap = s => s[0].toUpperCase() + s.slice(1);
 let F = null; // the fight in progress (not saved)
 
 // `foe` is a key of FOES or a fighter object; win/lose/flee get the final fight state.
-const brawl = (foe, name, win, lose, flee) => ({ fight: { ...(typeof foe === 'string' ? FOES[foe] : foe), name }, win, lose, flee });
+// A foe with str/health ranges is built by your own rules: same fight points, punch and stamina formulas as you.
+const fighter = f => {
+  if (!f.str) return f;
+  const s = rnd(...f.str), h = rnd(...f.health);
+  return { ...f, hp: 40 + Math.round(h * 0.6), pow: Math.round(12 + s / 4), stam: 60 + Math.round(s * 0.6) };
+};
+const brawl = (foe, name, win, lose, flee) => ({ fight: { ...fighter(typeof foe === 'string' ? FOES[foe] : foe), name }, win, lose, flee });
 
 function startFight(r, title) {
   const you = 40 + Math.round(P.health * 0.6);
   F = { ...r, title, foe: r.fight, you, youMax: you, them: r.fight.hp, round: 1, taken: 0, last: r.intro || '' };
   Object.assign(F, { stam: 60 + Math.round(P.str * 0.6), stamMax: 60 + Math.round(P.str * 0.6), hist: [], reads: 0 });
-  F.fstam = F.fstamMax = 70 + F.foe.pow * 2; // the opponent's stamina, same costs as yours
+  F.fstam = F.fstamMax = F.foe.stam || 70 + F.foe.pow * 2; // the opponent's stamina, same costs as yours
   fightMenu();
 }
 
@@ -1050,7 +1056,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.19</p>`];
+      `<p class="ver">Mafiozo 0.20</p>`];
   },
 };
 
