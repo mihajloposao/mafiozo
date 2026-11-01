@@ -7,8 +7,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 ## Files
 - `index.html` – PWA shell (manifest, service worker). Plain HTML/CSS/JS, no build step.
 - `css/style.css` – all styling; color and font tokens on `:root` (single dark theme by design).
-- `js/data.js` – content: names, crimes, activities, prison actions, jobs, random events. New content goes here.
-- `js/game.js` – engine (state `P`, aging, crime odds, arrests, event queue, save) and UI rendering.
+- `js/data.js` – content: names, families and their tests, the yearly challenge, fight opponents. New content goes here.
+- `js/game.js` – engine (state `P`, aging, event queue, minigames, save) and UI rendering.
 - `sw.js` – network-first cache. Bump `CACHE` on each release.
 - `tools/smoke.js` – `node tools/smoke.js [shot.png]` plays 3 random lives headless; exits 1 on page errors.
 - `tools/artifact.html` – shell for the claude.ai artifact build.
@@ -17,8 +17,10 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Outcomes: `ok|bad|meh(text, fx, causeOfDeath)`. fx keys: money, health, str, smarts, respect, heat, soul (soul -100..100).
 - Health is shown as HP and is your fight points: a life starts with 1-35, bell-shaped around 26 (childHp), capped at 35 up to age 12 and 100 later
   (agreed: HP grows by itself +0-5 a year, up to the cap; healing is not designed yet).
-- Keep it simple: six stats, four nav buttons (Activities incl. job, Crime, Profile, Age +1), one move per fight round.
-- Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
+- Keep it simple: six stats, four nav buttons (Activities (empty for now), Crime (Seek Out a Family), Profile, Age +1), one move per fight round.
+- Only explicitly agreed concepts exist (owner). Removed prototype concepts: crimes, arrests and prison, jobs, activities,
+  school and graduation, street ranks, old-age death, heat cooling, crew and lockpicking, random yearly events.
+- Events: `{ id, title, scene: true, when(p), ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   Fights: the needle crosses once (too slow = the hit lands unopposed); Perfect/Solid zones widen with strength and shrink
   with lost stamina (to 60%), the needle gets up to 40% faster with lost stamina; stamina: punch -25, grapple -30,
@@ -31,7 +33,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   The opponent has stamina too (70 + 2 x pow, same costs; the yard kid is built from str 5-20 / childHp() by your own formulas): tired it hits softer (to 60%) and backs off into blocks under 30.
   After every round a reveal shows both moves and the damage; the next round starts on 'Next round'.
   Feints and learning foes exist only in the Fight Test Room (F.v2) until the owner approves them.
-  `scene: true` events never roll at random; they run when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
+  Events run only when started (Seek Out a Family runs a random FAMILY_TESTS event with c.fam set).
   Families: no visible requirements, only street rumors. Any family gives any test (ring, sneak, safe, collect) at random;
   each test also picks a random variant (venue, opponent, place). Use clan(fam) for the plural (the Morettis, the Delacroix).
   Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the sneak test, test room in Profile.
@@ -41,7 +43,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
   the alarm wakes a knocked-out guard. Arrows (next move) always show; route dots only with smarts 65+.
   Endings: win (clean), loud (out with the target after an alarm), fled (out without it), caught.
-  Context `c`: first, last, full, n (name with nickname), crew, rival, fam, cop. Write NPC lines without pronouns.
+  Context `c`: first, last, full, fam (plus what an event's ctx adds). Write NPC lines without pronouns.
 - Save lives in localStorage under `mafiozo.save.v1`; change the key if the save shape changes incompatibly.
 
 ## Releasing
@@ -52,7 +54,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 4. Commit and push. GitHub Pages (when enabled) serves https://mihajloposao.github.io/mafiozo/
 
 ## Roadmap
-1. Phase 1 (done): life loop, stats, crimes, heat, prison, jobs, ~20 events, death, save.
+1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
    a. Joining a family on purpose (done: Volkov ring, Moretti sneaking, Delacroix safe, Castellano collecting). "Seek Out a Family" in Crime, once a year;
       each family runs approach, minigame test, verdict. The owner plans every segment before it is built: never build unasked.
@@ -76,13 +78,13 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    The first challenge runs right at the start, at age 5. Childhood scenarios (ages 5-12) are detailed one by one.
    Chosen first childhood stories (each still to be detailed): chess with grandpa; schoolyard fight (with a choice to
    fight or not); slingshot and cans; school quiz (with a chance to cheat); school cross-country run (with variations).
-   Built: CHALLENGES (data.js) + queueChallenge() run one scene per year before the random events (not in prison);
+   Built: CHALLENGES (data.js) + queueChallenge() run one scene per year;
    a life starts at 5 with a 'Born' log block. Done stories: 'yard' (schoolyard fight: hit first soul-3 respect+2 then fight;
    back off soul+3 respect-4; teacher respect-8; joke succeeds (smarts) respect+4 or fails respect-3 then fight;
    fight great/ok/bad/fled set str/respect/health exactly). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
-   smarts/strength growth, the prison respect and the graduation at 18 were removed; agreed: HP +0-5 a year; heat still cools by itself.
-   All random yearly events from the first prototype were removed (owner: only agreed content). queueEvent and tags
-   remain for new agreed events; KID_MEMORIES feeds the 'Born' block.
+   smarts/strength growth, the prison respect and the graduation at 18 were removed; agreed: HP +0-5 a year.
+   All random yearly events from the first prototype were removed (owner: only agreed content), and with them the
+   yearly random roll (queueEvent); KID_MEMORIES feeds the 'Born' block.
    Moral stories are separate from the yearly challenge: choice events (no minigame) that move Soul, to be built later.
    Childhood ideas: defend the new kid being teased; carry the old neighbor's bags; find a lost dog's owner;
    broke a window with a ball (own up or run); late home (lie or tell the truth).

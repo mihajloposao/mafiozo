@@ -1,5 +1,5 @@
 // Mafiozo – game content. Helpers come from game.js: rnd, chance, pick, cash,
-// ok/bad/meh (outcomes), brawl (starts a fight), arrest, extend, escapePrison, queueEvent.
+// ok/bad/meh (outcomes), brawl (starts a fight).
 // Effect keys: money, health, str, smarts, respect, heat.
 
 const CITY = 'Velmora City';
@@ -7,8 +7,6 @@ const DISTRICTS = ['the Narrows', 'Old Quay', 'Southside', 'Harbor Heights', 'Cr
 const FIRST_M = ['Marco', 'Luca', 'Vito', 'Dante', 'Nico', 'Sal', 'Tony', 'Enzo', 'Ray', 'Frankie', 'Leo', 'Johnny', 'Danny', 'Stefan', 'Milan', 'Victor'];
 const FIRST_F = ['Gia', 'Lena', 'Rosa', 'Mia', 'Carla', 'Nina', 'Sofia', 'Vera', 'Tess', 'Angela', 'Mara', 'Lucia', 'Jess', 'Ana', 'Dina', 'Kat'];
 const LAST = ['Russo', 'Marino', 'Costa', 'Moretti', 'Novak', 'Keane', 'Volkov', 'Esposito', 'Brennan', 'Lombardi', 'Petrov', 'Calloway', 'DeLuca', 'Hart', 'Vance', 'Rinaldi'];
-const NICKS = ['Knuckles', 'Two Times', 'The Ox', 'Slick', 'Fingers', 'Saint', 'Little Nicky', 'The Weasel', 'Ice', 'Smiles', 'Big Lou', 'Ghost'];
-const CREWS = ['the Kestrel Boys', 'the Southside Vipers', 'the Quay Rats', 'the Carrow Street Crew', 'the Neon Saints'];
 const FAMILIES = ['Moretti', 'Volkov', 'Delacroix', 'Castellano'];
 
 // What the street says about each family, and where they meet a newcomer.
@@ -50,7 +48,6 @@ function volkovFight(p, fam, foe, champ) {
       : bad(`${foe.name} knocked you out cold. You woke up in the alley out back.`, { respect: -2 }, `Died in a ${fam} fight ring`),
     () => bad(`You ran from a ${fam} fight. They will be laughing about it all year.`, { respect: -4 }));
 }
-const COPS = ['Harlow', 'Briggs', 'Okafor', 'Reyes', 'Kowalski'];
 const PARENTS = [
   'Your father fixes boats at the Old Quay. Your mother works nights at a diner.',
   'Your mother runs a laundromat that only takes cash. Nobody asks why.',
@@ -67,19 +64,14 @@ const KID_MEMORIES = [
   'Your uncle taught you to play cards. You cheated on purpose.',
 ];
 
-const RANKS = [[0, 'Nobody'], [10, 'Street Rat'], [25, 'Hustler'], [45, 'Known Face'], [65, 'Feared'], [85, 'Legend']];
-
 // Fight opponents: fight points, hit power (or str/health ranges: then built like you, see fighter() in game.js), needle speed (`cross` = seconds to cross the meter, otherwise spd x 60
 // percent per second) and how often they pick each move.
 const FOES = {
   kid: { str: [5, 20], health: () => childHp(), spd: 0.8, cross: 1.6, mix: { punch: 2, block: 1, grapple: 1 } },
-  drunk: { hp: 35, pow: 10, spd: 0.9, mix: { punch: 3, block: 0.5, grapple: 1 } },
   thug: { hp: 50, pow: 14, spd: 1.1, mix: { punch: 1, block: 1, grapple: 1 } },
-  gang: { hp: 65, pow: 17, spd: 1.2, mix: { punch: 2, block: 1, grapple: 2 } },
-  brute: { hp: 80, pow: 21, spd: 1.3, mix: { punch: 3, block: 1, grapple: 1 } },
 };
 
-// The yearly challenge: each year one scene (event id) that fits the age runs before the random events.
+// The yearly challenge: each year one scene (event id) that fits the age runs first.
 const CHALLENGES = [
   { id: 'yard', min: 5, max: 12 },
 ];
@@ -336,94 +328,8 @@ function morettiEnd(fam, job, how, bonus) {
   return null;
 }
 
-// Crimes: base success chance plus reward, respect, heat and sentence ranges.
-// Real odds also depend on smarts, respect, heat, your crew and lockpicking (see odds() in game.js).
-const CRIMES = [
-  { id: 'pickpocket', name: 'Pickpocket', minAge: 10, base: 0.78,
-    reward: [15, 180], respect: [1, 2], heat: [3, 6], jail: [0, 1],
-    ok: 'You lifted a fat wallet off a tourist on Pier Street.', fail: 'The mark felt your hand and started yelling. You ran.', caught: 'A beat cop grabbed you by the collar.' },
-  { id: 'shoplift', name: 'Shoplift', minAge: 10, base: 0.72,
-    reward: [20, 320], respect: [1, 2], heat: [3, 7], jail: [0, 1],
-    ok: 'You walked out with a jacket full of electronics and fenced them by dinner.', fail: 'The alarm went off at the door. You dropped everything and bolted.', caught: 'Store security tackled you in the parking lot.' },
-  { id: 'car', name: 'Boost a Car', minAge: 15, base: 0.56,
-    reward: [800, 5200], respect: [3, 6], heat: [8, 14], jail: [1, 3],
-    ok: 'You hotwired a sedan and the chop shop paid cash, no questions.', fail: 'The car alarm screamed. You left it running in the street.', caught: 'A patrol car boxed you in two blocks later.' },
-  { id: 'burglary', name: 'Burglary', minAge: 16, base: 0.5,
-    reward: [500, 9000], respect: [3, 6], heat: [8, 15], jail: [1, 4],
-    ok: 'In and out in twelve minutes. Jewelry, cash, a gold watch.', fail: 'A dog woke the whole street. You went out the back window empty-handed.', caught: 'The silent alarm brought the cops to the front door.' },
-  { id: 'store', name: 'Rob a Liquor Store', minAge: 17, base: 0.46,
-    reward: [300, 2600], respect: [5, 9], heat: [12, 20], jail: [2, 6], hurt: 0.4,
-    ok: 'The clerk emptied the register with shaking hands.', fail: 'The clerk pulled a shotgun from under the counter.', caught: 'You ran straight into a squad car on the corner.' },
-  { id: 'truck', name: 'Hijack a Truck', minAge: 18, minRespect: 25, base: 0.4,
-    reward: [5000, 30000], respect: [6, 10], heat: [15, 25], jail: [3, 8], hurt: 0.3,
-    ok: 'The driver handed over the keys. The cargo sold before sunrise.', fail: 'The driver floored it and nearly ran you over.', caught: 'The truck was a police sting. Cops everywhere.' },
-  { id: 'bank', name: 'Bank Job', minAge: 21, minRespect: 50, base: 0.26,
-    reward: [40000, 250000], respect: [12, 20], heat: [30, 45], jail: [8, 20], hurt: 0.5,
-    ok: 'Ninety seconds in the vault. The getaway car was waiting. Clean.', fail: 'The guard was faster than you planned. You fled under fire.', caught: 'SWAT was waiting outside before you reached the door.' },
-];
-
-// Once a year each, while free.
-const ACTIVITIES = [
-  { id: 'gym', name: 'Gym', desc: 'Strength and health up.', minAge: 12,
-    run: () => ok('You trained hard at the Iron Lung all year.', { str: rnd(3, 6), health: rnd(2, 5) }) },
-  { id: 'library', name: 'Library', desc: 'Smarts up.', minAge: 6,
-    run: () => ok('You spent long nights at the public library.', { smarts: rnd(2, 5) }) },
-  { id: 'corner', name: 'Hang on the Corner', desc: 'Respect up. Trouble may find you.', minAge: 12,
-    run: () => {
-      queueEvent('street', 0.45);
-      return meh('You spent the year on the corner of Carrow and 5th, watching how things work.', { respect: rnd(1, 3), heat: rnd(0, 2) });
-    } },
-  { id: 'night', name: 'Night Out', desc: 'Respect up. Costs money. Fights happen.', minAge: 16,
-    run: p => {
-      const spent = -Math.min(p.money, rnd(80, 400));
-      return chance(0.2)
-        ? brawl('drunk', 'the drunk',
-          () => ok('A drunk swung at you outside the club. You put them on the curb.', { money: spent, respect: rnd(1, 3) }),
-          () => bad('A drunk swung at you outside the club and won. Embarrassing.', { money: spent }),
-          () => meh('A drunk swung at you outside the club. You jumped in a cab.', { money: spent }))
-        : ok('You were seen at the Velvet Room with the right people.', { money: spent, respect: rnd(1, 3) });
-    } },
-  { id: 'doctor', name: 'See a Doctor', desc: 'Heals injuries. $200, free for kids.', minAge: 0,
-    run: p => {
-      const fee = p.age < 18 ? 0 : 200;
-      return p.money < fee
-        ? bad("The clinic wants $200 up front. You don't have it.")
-        : ok('The doctor patched you up and told you to slow down.', { money: -fee, health: rnd(6, 14) });
-    } },
-  { id: 'laylow', name: 'Lay Low', desc: 'Heat goes down.', minAge: 14,
-    run: () => ok('You kept your head down and stayed off the streets.', { heat: -rnd(15, 25) }) },
-];
-
-// Once a year each, while locked up.
-const PRISON_ACTIONS = [
-  { id: 'yard', name: 'Hit the Weights', desc: 'Strength and health up.',
-    run: () => ok('You pushed iron every day this year.', { str: rnd(3, 6), health: rnd(3, 6), respect: rnd(1, 2) }) },
-  { id: 'books', name: 'Prison Library', desc: 'Smarts up.',
-    run: () => ok('You read everything on the book cart.', { smarts: rnd(3, 6) }) },
-  { id: 'fight', name: 'Pick a Fight', desc: 'Win respect. Risk injuries.',
-    run: () => brawl('thug', 'the loudmouth',
-      () => ok('You flattened a loudmouth from C-Block. Nobody looks at you wrong now.', { respect: rnd(5, 10) }),
-      () => chance(0.3)
-        ? extend(1, bad('You lost, and the guards wrote you up.', {}, 'Killed in a prison fight'))
-        : bad('You lost. Badly.', {}, 'Killed in a prison fight')) },
-  { id: 'escape', name: 'Attempt Escape', desc: 'Long odds. Freedom if it works.',
-    run: p => chance(0.12 + p.smarts / 500)
-      ? escapePrison()
-      : extend(rnd(2, 4), bad('The guards caught you at the fence.', { health: -rnd(3, 8) })) },
-];
-
-const JOBS = [
-  { id: 'dish', title: 'Dishwasher', place: 'Lucky Lotus Diner', salary: 17000, minAge: 16 },
-  { id: 'bar', title: 'Bartender', place: 'The Velvet Room', salary: 28000, minAge: 18, req: {} },
-  { id: 'docks', title: 'Dock Worker', place: 'Old Quay Docks', salary: 34000, minAge: 18, req: { health: 40 } },
-  { id: 'teller', title: 'Bank Teller', place: 'First Velmora Bank', salary: 41000, minAge: 18, req: { smarts: 60 }, clean: true },
-  { id: 'cars', title: 'Car Salesman', place: 'Velmora Motors', salary: 44000, minAge: 18, req: { smarts: 45 } },
-];
-
-// Events. Only scenes are left for now (the random yearly events were removed until new ones are agreed). Each year rolls up to two random ones. `inside` events happen only in prison,
-// `anywhere` events in both; the rest only on the outside. `street` events can also
-// come from hanging on the corner. `scene` events only run when you start them (see FAMILY_INFO). Context `c`: first, last, full, n (with nickname),
-// crew, rival, fam, cop, plus whatever `ctx` adds. Write NPC lines without pronouns.
+// Events: all are scenes for now, run only when something starts them (CHALLENGES, Seek Out a Family, a test's next step).
+// Context `c`: first, last, full, fam, plus whatever `ctx` adds. Write NPC lines without pronouns.
 const EVENTS = [
   { id: 'yard', title: 'Schoolyard Fight', scene: true, when: () => true, ctx: () => ({ why: pick(YARD_WHYS) }),
     text: (p, c) => `${c.why.replace('{n}', c.first)} A circle of kids is already forming around you two.`,
@@ -493,12 +399,12 @@ const EVENTS = [
       { label: 'Break free and run', run: (p, c) => chance(0.3 + p.health / 250)
         ? bad('You twisted loose and ran. No prize, no family, but no cuffs either.', { heat: rnd(10, 15) })
         : c.by === 'mob' ? bad('You did not get far. They made sure you remember it.', { health: -rnd(20, 35) }, 'Beaten to death by a rival family')
-        : arrest(rnd(1, 3), 'You did not get far.') },
+        : bad('You did not get far. A night in a cell, then they let you walk. No prize, no family.', { heat: rnd(15, 20) }) },
       { label: 'Fight', run: (p, c) => brawl('thug', c.by === 'mob' ? 'the bouncer' : 'the cop',
         () => bad('You fought your way out, empty-handed. They know your face now.', { heat: rnd(12, 18), respect: 3 }),
         () => (c.by === 'mob' ? bad('They beat you and dumped you in the harbor. You crawled out.', { health: -rnd(10, 20) }, 'Beaten to death by a rival family')
-          : arrest(rnd(2, 4), 'You lost the fight and woke up in cuffs.'))) },
+          : bad('You lost the fight and woke up in a cell. By morning they let you walk, with a file in your name.', { heat: rnd(18, 25) }))) },
       { label: 'Give up', run: (p, c) => (c.by === 'mob' ? bad('You raised your hands. They beat you anyway and dumped you in an alley.', { health: -rnd(20, 35) }, 'Beaten to death by a rival family')
-        : arrest(rnd(1, 2), 'You raised your hands.')) },
+        : bad('You raised your hands. A night in a cell, then they let you walk. No prize, no family.', { heat: rnd(10, 15) })) },
     ] },
 ];

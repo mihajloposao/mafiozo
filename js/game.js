@@ -29,8 +29,7 @@ const ok = (text, fx = {}, cause) => ({ text, fx, cause, tone: 'good' });
 const bad = (text, fx = {}, cause) => ({ text, fx, cause, tone: 'bad' });
 const meh = (text, fx = {}, cause) => ({ text, fx, cause, tone: '' });
 
-const rank = p => (p.fam ? `${FAM_RANKS[p.fam.rank]}, ${p.fam.name} family` : RANKS.filter(([min]) => p.respect >= min).pop()[1]);
-const riskLabel = p => (p >= 0.7 ? 'Low risk' : p >= 0.45 ? 'Medium risk' : p >= 0.25 ? 'High risk' : 'Suicide mission');
+const rank = p => (p.fam ? `${FAM_RANKS[p.fam.rank]}, ${p.fam.name} family` : '');
 
 // ---------- the life ----------
 
@@ -38,8 +37,7 @@ function newLife(first, last, gender) {
   P = {
     first, last, gender, age: 0, born: new Date().getFullYear() - 5, district: pick(DISTRICTS),
     money: 0, health: childHp(), str: rnd(5, 20), smarts: rnd(15, 90), respect: 0, heat: 0, soul: 0,
-    job: null, prison: 0, inmate: rnd(10000, 99999), alive: true, cause: '',
-    flags: {}, seen: {}, done: {}, pending: [], tally: { crimes: 0, arrests: 0, served: 0, peak: 0 }, log: [],
+    alive: true, cause: '', done: {}, pending: [], tally: { peak: 0 }, log: [],
   };
   newYear();
   note(`You were born in ${CITY}, in ${P.district}. It's a ${gender === 'M' ? 'boy' : 'girl'}.`);
@@ -98,49 +96,6 @@ function load() {
   try { return JSON.parse(localStorage.getItem(SAVE_KEY)); } catch (e) { return null; }
 }
 
-// ---------- crime and punishment ----------
-
-function odds(c) {
-  let p = c.base + (P.smarts - 50) / 250 + P.respect / 400 - P.heat / 250;
-  if (P.flags.crew) p += 0.05;
-  if (P.flags.locks && (c.id === 'burglary' || c.id === 'car')) p += 0.08;
-  return clamp(p, 0.05, 0.95);
-}
-
-function commitCrime(c) {
-  P.tally.crimes++;
-  if (chance(odds(c))) return ok(c.ok, { money: rnd(...c.reward), respect: rnd(...c.respect), heat: rnd(...c.heat) });
-  if (chance(Math.min(0.95, 0.45 + P.heat / 200))) return arrest(rnd(...c.jail), c.caught);
-  if (c.hurt && chance(c.hurt)) return bad(`${c.fail} You got hurt getting away.`, { health: -rnd(10, 30), heat: rnd(...c.heat) }, 'Killed during a botched job');
-  return bad(c.fail, { respect: -1, heat: Math.ceil(c.heat[0] / 2) });
-}
-
-// More heat means a longer sentence.
-function arrest(years, text, fx = {}) {
-  years += Math.floor(P.heat / 34);
-  P.tally.arrests++;
-  if (years <= 0) return bad(`${text} The judge let you off with a warning.`, { ...fx, heat: 10 });
-  P.prison = years;
-  P.job = null;
-  P.heat = clamp(P.heat - 40);
-  delete P.flags.fugitive;
-  const where = P.age < 18 ? 'juvenile hall' : 'Velmora State Penitentiary';
-  return bad(`${text} Sentenced to ${plural(years, 'year')} in ${where}.`, fx);
-}
-
-function extend(years, r) {
-  P.prison += years;
-  r.text += ` ${plural(years, 'year')} added to your sentence.`;
-  return r;
-}
-
-function escapePrison() {
-  P.prison = 0;
-  P.heat = 90;
-  P.flags.fugitive = true;
-  return ok('You rode out in a laundry truck. Free, and the most wanted face in Velmora.', { respect: rnd(10, 15) });
-}
-
 // ---------- families ----------
 
 function joinFamily(name, text, fx = {}) {
@@ -157,23 +112,6 @@ function seekFamily(name) {
   nextEvent();
 }
 
-// ---------- work ----------
-
-function applyJob(j) {
-  if (j.clean && (P.tally.arrests || P.heat > 30)) return bad('Your background check came back dirty.');
-  const qualified = Object.entries(j.req || {}).every(([k, v]) => P[k] >= v);
-  if (!qualified || !chance(0.85)) return bad(`${j.place} hired someone else.`);
-  P.job = { title: j.title, place: j.place, salary: j.salary };
-  return ok(`You're the new ${j.title} at ${j.place}.`);
-}
-
-function askRaise() {
-  if (!chance(0.35 + P.smarts / 300)) return bad('Your boss laughed you out of the office.');
-  const raise = Math.round((P.job.salary * rnd(5, 12)) / 100 / 100) * 100;
-  P.job.salary += raise;
-  return ok(`Your boss gave you a ${cash(raise)} raise.`);
-}
-
 // ---------- years and events ----------
 
 function ageUp() {
@@ -181,36 +119,15 @@ function ageUp() {
   if (P.pending.length) return nextEvent();
   P.age++;
   newYear();
-  const a = P.age;
-  if (P.prison > 0) {
-    P.prison--;
-    P.tally.served++;
-    if (P.prison) note(`Another year inside. ${plural(P.prison, 'year')} to go.`);
-    else note('You walked out of the gates a free person.', 'good');
-  } else {
-    if (a === 5) note('You started school at P.S. 41.');
-    if (P.job) {
-      applyFx({ money: P.job.salary, heat: -3 });
-      note(`You earned ${cash(P.job.salary)} as a ${P.job.title}.`);
-    }
-  }
-  // Only agreed growth happens by itself: HP +0-5 a year (up to the age cap); heat cools off every year.
-  applyFx({ health: rnd(0, 5), heat: -rnd(4, 9) });
-  if (P.health <= 0) die('Your body gave out');
-  else if (a > 60 && chance(((a - 60) ** 2 / 1600) * (1.6 - P.health / 100))) die(pick(['Heart attack', 'Stroke', 'Old age']));
-  if (P.alive) {
-    if (chance(0.75)) queueEvent();
-    if (chance(0.2)) queueEvent();
-    queueChallenge(); // goes first, before the random events
-  }
+  applyFx({ health: rnd(0, 5) }); // agreed: HP grows by itself 0-5 a year, up to the age cap; nothing else changes by itself
+  queueChallenge();
   save();
   render();
-  if (P.alive) nextEvent();
+  nextEvent();
 }
 
 // The yearly challenge: one scene that fits the age, never the same one twice in a row when there is a choice.
 function queueChallenge() {
-  if (P.prison) return;
   const fits = CHALLENGES.filter(c => P.age >= c.min && P.age <= c.max);
   const pool = fits.filter(c => c.id !== P.lastChallenge), ch = pick(pool.length ? pool : fits);
   if (!ch) return;
@@ -219,35 +136,22 @@ function queueChallenge() {
   P.pending.unshift({ id: e.id, c: makeCtx(e) });
 }
 
-const eligible = e => (P.prison ? e.inside || e.anywhere : !e.inside) && e.when(P);
-
-function queueEvent(tag, prob = 1) {
-  if (!chance(prob)) return;
-  const pool = EVENTS.filter(e => !e.scene && (!tag || e.tag === tag) && !(e.once && P.seen[e.id]) && !P.pending.some(x => x.id === e.id) && eligible(e));
-  if (!pool.length) return;
-  let roll = Math.random() * pool.reduce((sum, e) => sum + (e.w || 1), 0);
-  const e = pool.find(x => (roll -= x.w || 1) < 0) || pool[0];
-  P.seen[e.id] = true;
-  P.pending.push({ id: e.id, c: makeCtx(e) });
-}
-
 function makeCtx(e, extra = {}) {
   const first = pick(FIRST_M.concat(FIRST_F)), last = pick(LAST);
   const c = {
-    first, last, full: `${first} ${last}`, n: `${first} '${pick(NICKS)}' ${last}`,
-    crew: pick(CREWS), rival: pick(CREWS.filter(x => x !== P.flags.crew)), fam: pick(FAMILIES), cop: pick(COPS), ...extra,
+    first, last, full: `${first} ${last}`, fam: pick(FAMILIES), ...extra,
   };
   return { ...c, ...(e.ctx ? e.ctx(P, c) : {}) };
 }
 
 const titleOf = (e, c) => (typeof e.title === 'function' ? e.title(P, c) : e.title);
 
-// Shows the next queued event, skipping any that no longer fit (say, you got arrested earlier this year).
+// Shows the next queued event, skipping any that no longer exist (an old save).
 function nextEvent() {
   while (P.pending.length) {
     const { id, c } = P.pending[0];
     const e = EVENTS.find(x => x.id === id);
-    if (!e || !eligible(e)) { P.pending.shift(); continue; }
+    if (!e) { P.pending.shift(); continue; }
     if (e.auto) { P.pending.shift(); return resolve(e.auto(P, c), titleOf(e, c)); }
     return showEvent(e, c);
   }
@@ -276,32 +180,6 @@ function resolve(r, title) {
   save();
   render();
   showModal(`<div class="card ${r.tone}" role="dialog" aria-modal="true"><p class="kicker">Age ${P.age}</p><h2>${esc(title)}</h2><p>${esc(r.text)}</p>${fx ? `<p class="fx">${esc(fx)}</p>` : ''}<div class="choices"><button class="primary" data-do="next">Continue</button></div></div>`);
-}
-
-function perform(kind, id) {
-  closeSheet();
-  if (kind === 'crime') {
-    const c = CRIMES.find(x => x.id === id);
-    return resolve(commitCrime(c), c.name);
-  }
-  if (kind === 'act' || kind === 'prison') {
-    const a = (kind === 'act' ? ACTIVITIES : PRISON_ACTIONS).find(x => x.id === id);
-    P.done[a.id] = true;
-    return play(a.run(P), a.name);
-  }
-  if (kind === 'hire') {
-    const j = JOBS.find(x => x.id === id);
-    return resolve(applyJob(j), j.place);
-  }
-  if (id === 'raise') {
-    P.done.raise = true;
-    return resolve(askRaise(), 'Raise');
-  }
-  if (id === 'quit') {
-    const title = P.job.title;
-    P.job = null;
-    return resolve(meh(`You quit your job as a ${title}.`), 'Quit');
-  }
 }
 
 // ---------- fights ----------
@@ -1020,55 +898,29 @@ const layer = cls => document.body.appendChild(Object.assign(document.createElem
 const sheet = layer('sheet');
 const modal = layer('modal');
 
-const item = (act, name, desc, meta, locked) =>
-  `<button class="item" data-act="${act}"${locked ? ' disabled' : ''}><span class="nm">${esc(name)}</span><span class="ds">${esc(desc)}</span><span class="mt">${esc(locked || meta)}</span></button>`;
 const list = items => `<div class="list">${items.join('')}</div>`;
 const msg = text => `<p class="empty">${esc(text)}</p>`;
 const facts = rows => `<dl class="facts">${rows.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>`;
-const needs = j => Object.entries(j.req || {}).map(([k, v]) => `${LABEL[k]} ${v}+`).concat(j.clean ? ['Clean record'] : []).join(' · ') || 'No experience needed';
-
-const prisonList = () => ['Prison', list(PRISON_ACTIONS.map(a => item(`prison:${a.id}`, a.name, a.desc, '', P.done[a.id] && 'Done this year')))];
-
 const SHEETS = {
   activities() {
-    if (P.prison) return prisonList();
-    const job = P.job
-      ? `<div class="job"><p class="mt">Your job</p><h3>${esc(P.job.title)}</h3><p>${esc(P.job.place)} · ${cash(P.job.salary)} a year</p>
-        <div class="row"><button class="ghost" data-act="job:raise"${P.done.raise ? ' disabled' : ''}>Ask for a Raise</button><button class="ghost" data-act="job:quit">Quit</button></div></div>`
-      : '';
-    const findJob = !P.job && P.age >= 16
-      ? [`<button class="item" data-sheet="jobs"><span class="nm">Find a Job</span><span class="ds">Steady pay every year. Lowers heat.</span></button>`]
-      : [];
-    return ['Activities', job + list(findJob.concat(ACTIVITIES.map(a =>
-      item(`act:${a.id}`, a.name, a.desc, '', P.age < a.minAge ? `Age ${a.minAge}+` : P.done[a.id] && 'Done this year'))))];
-  },
-  jobs() {
-    return ['Jobs', list(JOBS.map(j => item(`hire:${j.id}`, j.title, `${cash(j.salary)} a year · ${needs(j)}`, '', P.age < j.minAge && `Age ${j.minAge}+`)))];
+    return ['Activities', msg('Nothing to do here yet.')];
   },
   families() {
     return ['Families', `<p class="hint">One try a year, and every family tests you differently each time. Here is what the street says:</p>` + list(FAMILIES.map(name =>
       `<button class="item" data-seek="${name}"><span class="nm">The ${name} family</span><span class="ds">${esc(FAMILY_INFO[name].rumor)}</span></button>`))];
   },
   crime() {
-    if (P.prison) return prisonList();
-    if (P.age < 10) return ['Crime', msg('Too young for a life of crime. For now.')];
-    const seek = !P.fam && P.age >= 16
-      ? `<div class="list"><button class="item seek" data-sheet="families"${P.done.seek ? ' disabled' : ''}><span class="nm">Seek Out a Family</span><span class="ds">Try to get in with one of the four families.</span>${P.done.seek ? '<span class="mt">Tried this year</span>' : ''}</button></div><h3 class="sub">Street crimes</h3>`
-      : '';
-    return ['Crime', seek + list(CRIMES.map(c => {
-      const lock = P.age < c.minAge ? `Age ${c.minAge}+` : P.respect < (c.minRespect || 0) ? `Respect ${c.minRespect}+` : '';
-      return item(`crime:${c.id}`, c.name, '', `${riskLabel(odds(c))} · ${cash(c.reward[0])}–${cash(c.reward[1])}`, lock);
-    }))];
+    if (P.fam) return ['Crime', msg(`You answer to the ${clan(P.fam.name)} now.`)];
+    if (P.age < 16) return ['Crime', msg('Too young for this life. For now.')];
+    return ['Crime', `<div class="list"><button class="item seek" data-sheet="families"${P.done.seek ? ' disabled' : ''}><span class="nm">Seek Out a Family</span><span class="ds">Try to get in with one of the four families.</span>${P.done.seek ? '<span class="mt">Tried this year</span>' : ''}</button></div>`];
   },
   life() {
     const rows = [
-      ['Born', `${P.born} in ${P.district}`], ['Rank', rank(P)], ['Crew', P.flags.crew || 'None'],
-      ...(P.fam ? [['Family', `${P.fam.name} · ${FAM_RANKS[P.fam.rank]}`]] : P.flags.family ? [['Contacts', `The ${P.flags.family} family`]] : []),
-      ['Crimes committed', P.tally.crimes], ['Arrests', P.tally.arrests], ['Years inside', P.tally.served],
+      ['Born', `${P.born} in ${P.district}`], ...(P.fam ? [['Family', `${P.fam.name} · ${FAM_RANKS[P.fam.rank]}`]] : []),
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.27</p>`];
+      `<p class="ver">Mafiozo 0.28</p>`];
   },
 };
 
@@ -1091,9 +943,6 @@ function hideModal() { modal.hidden = true; }
 function render() {
   if (!P) return renderStart();
   if (!P.alive) return renderDeath();
-  const [status, hot] = P.prison ? [`Inmate #${P.inmate} · ${plural(P.prison, 'year')} left`, true]
-    : P.flags.fugitive ? ['Fugitive', true]
-    : [P.job ? P.job.title : P.age < 5 ? 'Child' : P.age < 18 ? 'Student' : 'Unemployed', false];
   const log = P.log.map(y => `<section class="yr"><h3>${y.age ? `Age ${y.age}` : 'Born'} · ${P.born + y.age}</h3>${y.items
     .map(it => `<p class="${it.tone}">${esc(it.text)}${it.fx ? `<small>${esc(it.fx)}</small>` : ''}</p>`).join('')}</section>`).join('');
   const bars = STATS.map(([k, label]) => {
@@ -1104,14 +953,14 @@ function render() {
   app.innerHTML = `
     <header class="top">
       <div class="mug" aria-hidden="true">${esc(P.first[0] + P.last[0])}</div>
-      <div class="who"><h1>${esc(P.first)} ${esc(P.last)}</h1><p>${rank(P)} · Age ${P.age}</p><p class="st${hot ? ' hot' : ''}">${esc(status)}</p></div>
+      <div class="who"><h1>${esc(P.first)} ${esc(P.last)}</h1><p>${P.fam ? `${rank(P)} · ` : ''}Age ${P.age}</p></div>
       <div class="cash"><small>Cash</small><b>${cash(P.money)}</b></div>
     </header>
     <main class="log" id="log">${log}</main>
     <section class="stats" aria-label="Stats">${bars}</section>
     <nav class="nav">
       <button data-sheet="activities">Activities</button>
-      <button data-sheet="crime">${P.prison ? 'Prison' : 'Crime'}</button>
+      <button data-sheet="crime">Crime</button>
       <button data-sheet="life">Profile</button>
       <button class="age" data-do="age">Age +1</button>
     </nav>`;
@@ -1149,11 +998,9 @@ function renderDeath() {
   app.innerHTML = `
     <section class="dead">
       <p class="stamp">Case Closed</p>
-      <p class="eyebrow">VCPD File ${P.born}-${P.inmate}</p>
       <h1 class="logo small">${esc(P.first)} ${esc(P.last)}</h1>
       <p class="tag">${P.born}–${P.born + P.age}. Died at ${P.age}. ${esc(P.cause)}.</p>
-      ${facts([['Rank', rank(P)], ['Cash left behind', cash(P.money)], ['Most cash ever', cash(P.tally.peak)], ['Crimes committed', P.tally.crimes],
-        ['Arrests', P.tally.arrests], ['Years inside', P.tally.served], ['Crew', P.flags.crew || 'None']])}
+      ${facts([...(P.fam ? [['Rank', rank(P)]] : []), ['Cash left behind', cash(P.money)], ['Most cash ever', cash(P.tally.peak)]])}
       <button class="primary big" data-do="restart">Start a New Life</button>
     </section>`;
 }
@@ -1187,7 +1034,6 @@ document.addEventListener('click', e => {
   if (!b || b.disabled) return;
   const d = b.dataset;
   if (d.sheet) openSheet(d.sheet);
-  else if (d.act) perform(...d.act.split(':'));
   else if (d.move) strike(d.move);
   else if (d.seek) seekFamily(d.seek);
   else if (d.tile) sneakTap(d.tile);
