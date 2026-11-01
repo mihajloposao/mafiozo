@@ -301,17 +301,18 @@ function perform(kind, id) {
 }
 
 // ---------- fights ----------
-// Each round the opponent picks a move and you pick yours while the needle crosses (punch beats grapple, grapple
-// beats block, block beats punch). Where the needle is grades your timing for every move, blocks included.
-// Strength sets your hit power and zone size, health your fight points, smarts can reveal the next move.
+// Each round the opponent picks a move and you pick yours while the needle crosses. Punch hits hardest but a block
+// stops it; Grapple hits softer but breaks a block and drains stamina; Block stops a punch and gets stamina back;
+// Punch against Grapple: both land. Where the needle is grades your timing for every move, blocks included.
+// Strength sets your hit power and zone size, health your fight points, smarts can reveal the next move;
+// lost stamina makes the needle faster and the zones narrower.
 const MOVES = { punch: 'Punch', block: 'Block', grapple: 'Grapple' };
-const BEATS = { punch: 'grapple', grapple: 'block', block: 'punch' };
 const TELLS = { punch: 'pulls a fist back', block: 'raises both arms', grapple: 'crouches low, arms wide' };
-const WIN_TEXT = { punch: n => `You caught ${n} coming in.`, grapple: n => `You got past the guard and took ${n} down.` };
-const LOSE_TEXT = { punch: n => `${n} caught you coming in.`, grapple: n => `${n} got past your guard and took you down.` };
 const MOVE_ICON = { punch: '👊', block: '🛡️', grapple: '🤼', flee: '🏃' };
-const COUNTER = { punch: 'block', grapple: 'punch', block: 'grapple' }; // what beats each move
-const COST = { punch: 25, grapple: 30, block: 0 }; // stamina
+const COUNTER = { punch: 'block', grapple: 'punch', block: 'grapple' }; // the best answer to each move (test room reads)
+const COST = { punch: 25, grapple: 30, block: 0, flee: 0 }; // stamina a move costs the one who makes it
+const DRAIN = { punch: 5, grapple: 20 }; // stamina a landed move takes from the one it hits
+const GRAPPLE = 0.6; // a grapple hits for 60% of a punch
 const cap = s => s[0].toUpperCase() + s.slice(1);
 let F = null; // the fight in progress (not saved)
 
@@ -340,25 +341,26 @@ function fightCard(body) {
 }
 
 // Each round the needle waits a moment (longer with smarts), then crosses the meter once. The zones are wider with
-// strength and narrower as you get hurt: the bright middle is Perfect, the band around it Solid, the rest Sloppy.
+// strength and narrower as stamina runs out: the bright middle is Perfect, the band around it Solid, the rest Sloppy.
 function fightMenu() {
   const mix = F.foe.mix;
   let roll = Math.random() * Object.values(mix).reduce((x, y) => x + y, 0);
   F.next = Object.keys(mix).find(k => (roll -= mix[k]) < 0) || 'punch';
   if (F.fstam < 30 && F.next !== 'block' && chance(0.6)) F.next = 'block'; // a tired opponent backs off to catch a breath
   if (F.v2) foeThinks();
-  const hurt = 0.6 + (0.4 * Math.max(0, F.you)) / F.youMax;
-  const solid = (12 + P.str * 0.12) * hurt, perfect = (4 + P.str * 0.04) * hurt, x = 15 + Math.random() * (85 - solid);
+  const fit = Math.max(0, F.stam) / F.stamMax; // 1 fresh, 0 out of stamina
+  const tired = 0.6 + 0.4 * fit; // out of stamina the zones shrink to 60%
+  const solid = (12 + P.str * 0.12) * tired, perfect = (4 + P.str * 0.04) * tired, x = 15 + Math.random() * (85 - solid);
   F.zone = { x, solid, px: x + (solid - perfect) / 2, perfect };
   F.delay = 200 + P.smarts * 6;
-  F.speed = (F.foe.cross ? 100 / F.foe.cross : F.foe.spd * 60) * (F.stam < 30 ? 1.25 : 1); // percent per second; tired is faster
+  F.speed = (F.foe.cross ? 100 / F.foe.cross : F.foe.spd * 60) * (1 + 0.4 * (1 - fit)); // percent per second; up to 40% faster tired
   const t0 = (F.t0 = performance.now());
   const shown = F.v2 ? F.shown : chance(P.smarts / 130) ? F.next : null;
   const tell = (shown ? `${cap(F.foe.name)} ${TELLS[shown]}.` : `You can't read ${F.foe.name}.`) + (F.fstam < 30 ? ` ${cap(F.foe.name)} is out of breath.` : '');
   showModal(fightCard(`<p class="tell">${esc(tell)}</p>
     <div class="meter"><i class="solid" style="left:${x}%;width:${solid}%"></i><i class="perfect" style="left:${F.zone.px}%;width:${perfect}%"></i><b id="needle"></b></div>
     <div class="moves">${Object.entries(MOVES).map(([k, v]) => `<button class="opt" data-move="${k}">${v}<small>${k === 'block' ? '+15' : `−${COST[k]}`} stamina</small></button>`).join('')}</div>
-    <p class="rules">Tap a move while the needle is in the bright zone. It crosses only once: hesitate and the hit lands unopposed.<br>Punch beats Grapple · Grapple beats Block · Block beats Punch<br>Timing counts for every move, blocks included. Punching and grappling cost stamina, blocking gets it back.${F.v2 ? '<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
+    <p class="rules">Tap a move while the needle is in the bright zone. It crosses only once: hesitate and the hit lands unopposed.<br>Punch hits hardest, Block stops it · Grapple hits softer, breaks Block and drains stamina · Punch and Grapple both land<br>Timing counts for every move. Only a clean block gets stamina back; the less stamina, the faster the needle and the narrower the zones.${F.v2 ? '<br>A tell can be a feint, and fighters punish a move you keep repeating.' : ''}</p>
     <button class="ghost flee" data-do="flee">Run for it</button>`));
   const sweep = () => {
     if (!F || F.t0 !== t0) return; // the next round or the end of the fight stops this loop
@@ -373,56 +375,61 @@ function fightMenu() {
 // One pass: the needle waits F.delay ms, then crosses at F.speed percent per second.
 const needlePos = () => Math.min(100, Math.max(0, ((performance.now() - F.t0 - F.delay) / 1000) * F.speed));
 
-// New rules: the needle ran out before you picked a move, so the opponent's move lands unopposed.
+// The opponent's blow before your timing counts: harder if you were left open, softer (down to 60%) when out of breath.
+const foeHit = () => rnd(F.foe.pow - 3, F.foe.pow + 3) * (F.exposed ? 1.5 : 1) * (0.6 + (0.4 * Math.max(0, F.fstam)) / F.fstamMax);
+
+// The needle ran out before you picked a move, so the opponent's move lands unopposed.
 function hesitate() {
-  const risk = (F.exposed ? 1.5 : 1) * (F.fstam < COST[F.next] ? 0.5 : 1), took = F.next === 'block' ? 0 : Math.round(rnd(F.foe.pow - 3, F.foe.pow + 3) * risk);
+  const them = F.next, Name = cap(F.foe.name), hit = foeHit();
   F.reads = 0;
   F.opening = F.exposed = false;
-  hitRound(0, took, took ? `${cap(F.foe.name)} hit you clean.` : `${cap(F.foe.name)} only kept a guard up.`, null, 'Too slow.');
+  if (them === 'block') return hitRound({ text: `${Name} only kept a guard up.`, label: 'Too slow.' });
+  hitRound({ took: Math.round(them === 'grapple' ? hit * GRAPPLE : hit), drainMe: DRAIN[them], label: 'Too slow.',
+    text: them === 'grapple' ? `${Name} took you down.` : `${Name} hit you clean.` });
 }
 
 function strike(me) {
   const pos = needlePos(), z = F.zone;
-  let [q, label] = pos >= z.px && pos <= z.px + z.perfect ? [1.5, 'Perfect!'] : pos >= z.x && pos <= z.x + z.solid ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
-  const gassed = F.stam < COST[me]; // too tired: the move lands at half power
-  if (gassed) label = `Gassed. ${label}`;
-  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' && q > 0.5 ? 15 : 0)); // only a good block brings stamina back
+  const [q, label] = pos >= z.px && pos <= z.px + z.perfect ? [1.5, 'Perfect!'] : pos >= z.x && pos <= z.x + z.solid ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
   F.hist.push(me);
   if (F.v2) F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
-  const boost = F.opening ? 1.5 : 1, risk = F.exposed ? 1.5 : 1; // someone was left open by a blocked punch last round
-  F.opening = F.exposed = false;
   const them = F.next, name = F.foe.name, Name = cap(name); // Name starts a sentence
-  const foeTired = F.fstam < COST[them]; // an opponent out of breath hits at half power too
-  const hit = rnd(F.foe.pow - 3, F.foe.pow + 3) * risk * (foeTired ? 0.5 : 1); // the opponent's blow before your timing counts
-  const mine = Math.round((12 + P.str / 4) * q * (gassed ? 0.5 : 1) * boost), theirs = Math.round(hit * (2 - q));
-  let dealt = 0, took = 0, text;
-  if (me === them) {
-    if (me === 'block') text = 'You both kept your guard up. Nothing landed.';
-    else { dealt = Math.round(mine / 2); took = Math.round(theirs / 2); text = me === 'punch' ? 'You traded punches.' : `You and ${name} went down wrestling.`; }
-  } else if (me === 'block' && them === 'punch') { // a block never hurts anyone; its timing decides how much gets through
+  const flabel = F.fstam < 30 ? 'Tired.' : '', hit = foeHit();
+  const power = (12 + P.str / 4) * q * (F.opening ? 1.5 : 1); // your punch; someone left open last round takes 50% more
+  F.opening = F.exposed = false;
+  const mine = Math.round(me === 'grapple' ? power * GRAPPLE : power);
+  const theirs = Math.round((them === 'grapple' ? hit * GRAPPLE : hit) * (2 - q)); // your timing decides how well you take it
+  let dealt = 0, took = 0, drainThem = 0, drainMe = 0, text;
+  const land = (share = 1) => { dealt = Math.round(mine * share); drainThem = Math.round(DRAIN[me] * share); };
+  const hurt = (share = 1) => { took = Math.round(theirs * share); drainMe = Math.round(DRAIN[them] * share); };
+  if (me === 'block' && them === 'block') text = 'You both kept your guard up. Nothing landed.';
+  else if (me === them) { land(0.5); hurt(0.5); text = me === 'punch' ? 'You traded punches.' : `You and ${name} went down wrestling.`; }
+  else if (me === 'block' && them === 'punch') { // a block never hurts anyone; its timing decides how much gets through
     if (q === 1.5) { F.opening = true; text = `Perfect block. ${Name} is wide open.`; }
     else if (q === 1) text = `You blocked ${name}'s punch.`;
-    else { took = Math.round(hit / 2); text = `Your guard came up late. Half of ${name}'s punch got through.`; }
+    else { took = Math.round(hit / 2); drainMe = Math.round(DRAIN.punch / 2); text = `Your guard came up late. Half of ${name}'s punch got through.`; }
   } else if (me === 'punch' && them === 'block') { // and the punch's timing decides what the guard does with it
-    if (q === 1.5) { dealt = Math.round(mine / 2); text = `Your punch broke through ${name}'s guard.`; }
+    if (q === 1.5) { land(0.5); text = `Your punch broke through ${name}'s guard.`; }
     else if (q === 1) text = `${Name} blocked your punch.`;
     else { F.exposed = true; text = `${Name} blocked your sloppy punch. You are wide open.`; }
-  } else if (BEATS[me] === them) {
-    dealt = mine;
-    text = WIN_TEXT[me](name);
-  } else {
-    took = theirs;
-    text = LOSE_TEXT[them](Name);
+  } else if (me === 'grapple' && them === 'block') { land(); text = `You got past the guard and took ${name} down.`; }
+  else if (me === 'block' && them === 'grapple') { hurt(); text = `${Name} got past your guard and took you down.`; }
+  else { // punch against grapple: both land
+    land(); hurt();
+    text = me === 'punch' ? `You caught ${name} coming in, but ${name} still took you down.` : `You took ${name} down, but ate a punch on the way in.`;
   }
   if (F.v2 && F.feint) text += ' It was a feint.';
-  if (F.v2 && F.learned && took) text += ` ${cap(F.foe.name)} saw that coming.`;
-  hitRound(dealt, took, text, me, label, foeTired ? 'Gassed.' : '');
+  if (F.v2 && F.learned && took) text += ` ${Name} saw that coming.`;
+  hitRound({ dealt, took, text, mine: me, label, flabel, drainMe, drainThem,
+    rest: me === 'block' && q > 0.5 && them !== 'grapple', frest: them === 'block' && me !== 'grapple' });
 }
 
 // Applies a round, then shows both moves side by side; the next round starts only when the player asks for it.
-function hitRound(dealt, took, text, mine, label = '', flabel = '') {
+// Stamina: each move costs its maker, a landed move drains the one it hits, a block that held gets 15 back.
+function hitRound({ dealt = 0, took = 0, text, mine = null, label = '', flabel = '', drainMe = 0, drainThem = 0, rest = false, frest = F.next === 'block' }) {
   F.t0 = null; // stops this round's needle
-  F.fstam = Math.min(F.fstamMax, Math.max(0, F.fstam - COST[F.next]) + (F.next === 'block' ? 15 : 0));
+  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - (mine ? COST[mine] : 0) - drainMe) + (rest ? 15 : 0));
+  F.fstam = Math.min(F.fstamMax, Math.max(0, F.fstam - COST[F.next] - drainThem) + (frest ? 15 : 0));
   F.them -= dealt;
   F.you -= took;
   F.taken += took;
@@ -444,11 +451,13 @@ function fightNext() {
 }
 
 // Getting away depends on how much fight you have left in you right now: fight points and stamina.
+// A failed run ends in a grapple: grapple damage and its stamina drain.
 function flee() {
   if (chance(0.15 + (0.35 * Math.max(0, F.you)) / F.youMax + (0.3 * F.stam) / F.stamMax)) return endFight('flee');
   F.next = 'grapple'; // you were grabbed on the way out
-  F.stam = Math.max(0, F.stam - 15);
-  hitRound(0, rnd(F.foe.pow - 3, F.foe.pow + 3), `You tried to run. ${cap(F.foe.name)} grabbed you and dragged you back.`, 'flee');
+  const took = Math.round(foeHit() * GRAPPLE);
+  F.opening = F.exposed = false;
+  hitRound({ took, drainMe: DRAIN.grapple, mine: 'flee', text: `You tried to run. ${cap(F.foe.name)} grabbed you and dragged you back.` });
 }
 
 function endFight(kind) {
@@ -1055,7 +1064,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.22</p>`];
+      `<p class="ver">Mafiozo 0.23</p>`];
   },
 };
 
