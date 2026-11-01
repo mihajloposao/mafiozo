@@ -19,7 +19,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Events: `{ id, title, when(p), w?, once?, tag?, inside?|anywhere?, ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   Fights: the needle crosses once (too slow = the hit lands unopposed); Perfect/Solid zones widen with strength and shrink
-  when hurt; stamina (punch -25, grapple -30, block +15, +10 a round, tired = half power, needle 25% faster under 30).
+  when hurt; stamina (punch -25, grapple -30, block +15 (not when Sloppy), +10 a round, tired = half power, needle 25% faster under 30).
   A block never deals damage, and timing grades every move: block vs punch: Perfect = blocked and the puncher is open
   (next move 50% harder), Solid = blocked, Sloppy = half gets through; punch vs block: Perfect = half damage through the
   guard, Solid = blocked, Sloppy = blocked and you are open. Fleeing depends on fight points and stamina left.

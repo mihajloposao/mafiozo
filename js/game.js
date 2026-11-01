@@ -387,7 +387,7 @@ function strike(me) {
   let [q, label] = pos >= z.px && pos <= z.px + z.perfect ? [1.5, 'Perfect!'] : pos >= z.x && pos <= z.x + z.solid ? [1, 'Solid.'] : [0.5, 'Sloppy.'];
   const gassed = F.stam < COST[me]; // too tired: the move lands at half power
   if (gassed) label = `Gassed. ${label}`;
-  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' ? 15 : 0) + 10);
+  F.stam = Math.min(F.stamMax, Math.max(0, F.stam - COST[me]) + (me === 'block' && q > 0.5 ? 15 : 0) + 10); // a sloppy block is no rest
   F.hist.push(me);
   if (F.v2) F.reads = F.shown && me === COUNTER[F.shown] ? F.reads + 1 : 0; // following the tell again and again gets noticed
   const boost = F.opening ? 1.5 : 1, risk = F.exposed ? 1.5 : 1; // someone was left open by a blocked punch last round
@@ -1056,7 +1056,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.20</p>`];
+      `<p class="ver">Mafiozo 0.21</p>`];
   },
 };
 
