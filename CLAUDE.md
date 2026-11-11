@@ -20,7 +20,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Keep it simple: six stats, four nav buttons (Activities (empty for now), Crime (Seek Out a Family), Profile, Age +1), one move per fight round.
 - Only explicitly agreed concepts exist (owner). Removed prototype concepts: crimes, arrests and prison, jobs, activities,
   school and graduation, street ranks, old-age death, heat cooling, crew and lockpicking, random yearly events.
-- Events: `{ id, title, scene: true, when(p), ctx?(p), text(p,c), choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices.
+- Events: `{ id, title, scene: true, when(p), ctx?(p), text(p,c), hint?, choices: [{ label, run(p,c) }] }` or `auto(p,c)` instead of text/choices (hint: a muted line under the text).
   A choice or activity may return `brawl(foe, name, win, lose, flee?)` (foes in `FOES`) to start the fight minigame; health lost in the fight is added to the outcome.
   Fights: the needle crosses once (too slow = the hit lands unopposed); Perfect/Solid zones widen with strength and shrink
   with lost stamina (to 60%), the needle gets up to 40% faster with lost stamina; stamina: punch -25, grapple -30,
@@ -41,9 +41,11 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Slingshot minigame (5 stones, 5 targets; drag down anywhere, longer pull = farther; while pulling a circle shows where
   the stone can land and it falls anywhere inside; smarts shrink the circle (radius 26 at 0 to 6 at 100); the hand shakes
   more the longer you hold, strength calms it (x1.6 to x0.5, calm 0.5 s to 1.2 s); scenes in SLING_SCENES, tunables in SLING):
-  `startSling({ scene, str?, smarts?, end? }, title)` (str/smarts default to the life's). Only a test room in Profile so far,
-  with Weak/Average/Strong and Dim/Average/Sharp picks (agreed plan: 1 feel and 2 stats done; next the uncle story, then the rest).
-  Target: an average character hits about 3 of 5. TODO later (owner): a short slingshot tutorial.
+  `startSling({ scene, str?, smarts?, end? }, title)`, or a choice returns `{ sling: { scene, end(grade, hits) } }`;
+  str/smarts default to the life's, and for ages 5-12 strength is measured against a child's 5-20 (slStr; older ages not decided).
+  Used by the 'uncle' story; test room in Profile (a Settings button shows the Scene, Weak/Average/Strong and Dim/Average/Sharp picks).
+  Agreed plan: 1 feel, 2 stats, 3 uncle done; next the kids' bet and the windows (house scene) stories.
+  Target: an average character hits about 3 of 5 (owner's playtest: 2.4 on a small test-room scene). TODO later (owner): a short slingshot tutorial.
   Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; used by the collect test, test room in Profile.
   Collect night: P.collect holds the notebook (3 DEBTORS); events debtor/sweep/handover; skimming or lying for a debtor can be found out.
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;
@@ -84,10 +86,13 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    The first challenge runs right at the start, at age 5. Childhood scenarios (ages 5-12) are detailed one by one.
    Chosen first childhood stories (each still to be detailed): chess with grandpa; schoolyard fight (with a choice to
    fight or not); slingshot and cans; school quiz (with a chance to cheat); school cross-country run (with variations).
-   Built: CHALLENGES (data.js) + queueChallenge() run one scene per year;
+   Built: CHALLENGES (data.js: story id, game, age range) + queueChallenge(): each year first a minigame at random (never the
+   same twice in a row when there is a choice), then one of its stories, so every minigame comes up equally often;
    a life starts at 5 with a 'Born' log block. Done stories: 'yard' (schoolyard fight: hit first soul-3 respect+2 then fight;
    back off soul+3 respect-4; teacher respect-8; joke succeeds (smarts) respect+4 or fails respect-3 then fight;
-   fight great/ok/bad/fled set str/respect/health exactly). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
+   fight great/ok/bad/fled set str/respect/health exactly); 'uncle' (slingshot, cans; random uncle name and one of
+   UNCLE_WHYS; great smarts+4 str+2, ok smarts+2 str+1, bad smarts-1 str-1; the uncle gives no slingshot and no story
+   is a prerequisite for another). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
    smarts/strength growth, the prison respect and the graduation at 18 were removed; agreed: HP +0-5 a year.
    All random yearly events from the first prototype were removed (owner: only agreed content), and with them the
    yearly random roll (queueEvent); KID_MEMORIES feeds the 'Born' block.
