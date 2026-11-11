@@ -93,7 +93,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    fight great/ok/bad/fled set str/respect/health exactly); 'uncle' (slingshot, cans; random uncle name and one of
    UNCLE_WHYS; great smarts+4 str+2, ok smarts+2 str+1, bad smarts-1 str-1; the uncle gives no slingshot and no story
    is a prerequisite for another); 'bet' (slingshot, cans; older kids bet you can't hit 2 of 5, pride only, leader c.first,
-   one of BET_WHYS; great respect+4 smarts+2, ok respect+2 smarts+1, bad respect-3 smarts-2). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
+   one of BET_WHYS; great respect+4 smarts+2, ok respect+2 smarts+1, bad respect-3 smarts-2; or walk away: excuse
+   works by smarts like the yard joke respect-1, else 'chicken' respect-5). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
    smarts/strength growth, the prison respect and the graduation at 18 were removed; agreed: HP +0-5 a year.
    All random yearly events from the first prototype were removed (owner: only agreed content), and with them the
    yearly random roll (queueEvent); KID_MEMORIES feeds the 'Born' block.

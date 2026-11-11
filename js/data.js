@@ -403,7 +403,12 @@ const EVENTS = [
     choices: [{ label: 'Take the shot', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => uncleEnd(c, grade, hits) } }) }] },
   { id: 'bet', title: 'The Bet', scene: true, when: () => true, ctx: () => ({ why: pick(BET_WHYS) }),
     text: (p, c) => c.why.replace('{n}', c.first), hint: SLING_HINT,
-    choices: [{ label: 'Take the bet', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => betEnd(c, grade, hits) } }) }] },
+    choices: [
+      { label: 'Take the bet', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => betEnd(c, grade, hits) } }) },
+      { label: 'Walk away', run: (p, c) => (chance(Math.min(0.95, Math.max(0.05, (p.smarts - 20) / 60))) // a good excuse takes smarts
+        ? meh(`"Some of us have better things to do than shoot garbage." Even ${c.first} grins.`, { respect: -1 })
+        : bad(`"Chicken," says ${c.first}, and by Monday the whole block is clucking.`, { respect: -5 })) },
+    ] },
   { id: 'ring', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
     ctx: () => ({ venue: pick(VOLKOV_VENUES), foe: pick(VOLKOV_FIGHTERS) }),
     text: (p, c) => `${c.venue.replace('{clan}', clan(c.fam))} A ${c.fam} lieutenant looks you over. "You want in? Here, you fight. Tonight it is ${c.foe.name}." ${c.foe.note}`,
