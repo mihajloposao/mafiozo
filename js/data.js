@@ -71,6 +71,23 @@ const FOES = {
   thug: { hp: 50, pow: 14, spd: 1.1, mix: { punch: 1, block: 1, grapple: 1 } },
 };
 
+// Slingshot scenes: the mechanic is the same everywhere, a scene only sets the picture and the targets.
+// The canvas is 300 x 400. Targets: x (centre), y (where it stands), s (size, 1 = closest), on (crate, post, wall).
+const SLING_SCENES = {
+  cans: {
+    name: 'Cans on the fence', kind: 'can',
+    sky: ['#18211f', '#5e4630'], city: '#0f1514', ground: ['#2e2a20', '#1a1712'],
+    wall: { top: 150, bottom: 192, color: '#4d3b27' },
+    targets: [
+      { x: 82, y: 268, s: 1, on: 'crate' },
+      { x: 214, y: 232, s: 0.82, on: 'crate' },
+      { x: 148, y: 196, s: 0.66, on: 'post' },
+      { x: 98, y: 150, s: 0.5, on: 'wall' },
+      { x: 236, y: 150, s: 0.46, on: 'wall' },
+    ],
+  },
+};
+
 // The yearly challenge: each year one scene (event id) that fits the age runs first.
 const CHALLENGES = [
   { id: 'yard', min: 5, max: 12 },

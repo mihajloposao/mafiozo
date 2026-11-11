@@ -234,6 +234,18 @@ h1, h2, h3 { margin: 0; font-family: var(--display); font-weight: 800; text-tran
 .mc.miss .face.front { border-color: var(--blood); }
 @keyframes grab { 50% { transform: scale(1.1); } }
 
+/* slingshot */
+.card.sling { animation: none; padding: 16px; }
+.card.sling h2 { font-size: 26px; margin-bottom: 6px; }
+.card.sling .tell { font-size: 14px; font-style: normal; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.chip { padding: 5px 10px; border: 1px solid var(--line); border-radius: 999px; background: var(--raise); font-size: 13px; color: var(--muted); }
+.chip.on { border-color: var(--brass); color: var(--brass); }
+.sl-hud { display: flex; justify-content: space-between; font-size: 14px; color: var(--muted); }
+.sl-hud .stones { color: var(--brass); letter-spacing: 3px; }
+#sling { display: block; width: min(100%, 44vh); aspect-ratio: 3 / 4; margin: 0 auto 4px; border: 1px solid var(--line); border-radius: 8px;
+  touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+
 /* start and death screens */
 .start, .dead { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 14px; overflow-y: auto; padding-block: 24px; }
 .eyebrow { margin: 0; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .22em; color: var(--brass); }
