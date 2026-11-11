@@ -19,6 +19,18 @@ const path = require('path');
     await page.click('button[type=submit]');
     for (let step = 0; step < 1200 && !(await page.$('.dead')); step++) {
       if (await clickAny('.overlay.modal:not([hidden]) button:not([disabled])')) continue;
+      const sling = await page.$('.overlay.modal:not([hidden]) #sling');
+      if (sling) { // the slingshot has no buttons until the last stone lands: shoot somewhere
+        const b = await sling.boundingBox(); // null when the card was just redrawn
+        if (!b) continue;
+        const x = b.x + b.width / 2, y = b.y + b.height / 2;
+        await page.mouse.move(x, y);
+        await page.mouse.down();
+        await page.mouse.move(x + (Math.random() - 0.5) * 80, y + 20 + Math.random() * 100, { steps: 4 });
+        await page.mouse.up();
+        await page.waitForTimeout(700);
+        continue;
+      }
       if (await page.$('.overlay.sheet:not([hidden])')) {
         if (!(await clickAny('.overlay.sheet:not([hidden]) .item:not([disabled])'))) await page.click('[data-close]');
         continue;

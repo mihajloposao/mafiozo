@@ -71,9 +71,29 @@ const FOES = {
   thug: { hp: 50, pow: 14, spd: 1.1, mix: { punch: 1, block: 1, grapple: 1 } },
 };
 
-// The yearly challenge: each year one scene (event id) that fits the age runs first.
+// Slingshot scenes: the mechanic is the same everywhere, a scene only sets the picture and the targets.
+// The canvas is 300 x 400. Targets: x (centre), y (where it stands), s (size, 1 = closest), on (crate, post, wall).
+const SLING_SCENES = {
+  cans: {
+    name: 'Cans on the fence', kind: 'can',
+    sky: ['#18211f', '#5e4630'], city: '#0f1514', ground: ['#2e2a20', '#1a1712'],
+    wall: { top: 150, bottom: 192, color: '#4d3b27' },
+    targets: [
+      { x: 82, y: 268, s: 1, on: 'crate' },
+      { x: 214, y: 232, s: 0.82, on: 'crate' },
+      { x: 148, y: 196, s: 0.66, on: 'post' },
+      { x: 98, y: 150, s: 0.5, on: 'wall' },
+      { x: 236, y: 150, s: 0.46, on: 'wall' },
+    ],
+  },
+};
+
+// The yearly challenge: each year a minigame (game) that fits the age is picked first, then one of its stories
+// (event ids), so every minigame comes up equally often however many stories it has.
 const CHALLENGES = [
-  { id: 'yard', min: 5, max: 12 },
+  { id: 'yard', game: 'fight', min: 5, max: 12 },
+  { id: 'uncle', game: 'sling', min: 5, max: 12 },
+  { id: 'bet', game: 'sling', min: 5, max: 12 },
 ];
 
 // Why the schoolyard fight starts ({n} is the other kid).
@@ -93,6 +113,43 @@ function yardFight(c, base, intro = '') {
       add(f.taken < f.youMax / 3 ? { str: 3, respect: 5, health: -rnd(1, 3) } : { str: 2, respect: 2, health: -rnd(3, 6) })), exact: true }),
     () => ({ ...bad(`${c.first} beat you in front of everyone.`, add({ str: 1, respect: -3, health: -rnd(5, 10) })), exact: true }),
     () => meh('You ran. The whole school saw it.', add({ respect: -5 }))), intro };
+}
+
+// Why the uncle has you shooting cans ({u} is the uncle's name).
+const UNCLE_WHYS = [
+  'Uncle {u} shows up on a Sunday with a slingshot and five cans from the trash. "Your father never could hit a thing. Let\'s see about you."',
+  'Uncle {u} is bored at the family lunch, digs an old slingshot out of the shed and lines five cans up on the back fence. "Five stones. Make your old uncle proud."',
+  'Uncle {u} is babysitting today, which means a slingshot, five empty cans and one rule: your mother never hears about this.',
+];
+
+const SLING_HINT = 'Drag down and let go. The circle shows where the stone can land.';
+const cansDown = hits => (hits ? `${hits} of 5 cans down.` : 'Not a single can down.');
+
+// The uncle's verdict, from the slingshot's grade (great 4-5 hits, ok 2-3, bad 0-1).
+function uncleEnd(c, grade, hits) {
+  const down = cansDown(hits);
+  return {
+    great: ok(`${down} Uncle ${c.u} whistles. "That's not luck. That's an eye."`, { smarts: 4, str: 2 }),
+    ok: meh(`${down} "Not bad," says Uncle ${c.u}. "Again next Sunday."`, { smarts: 2, str: 1 }),
+    bad: bad(`${down} Uncle ${c.u} collects the cans in silence.`, { smarts: -1, str: -1 }),
+  }[grade];
+}
+
+// Why the older kids bet against you ({n} is their leader). Only pride is at stake, no money.
+const BET_WHYS = [
+  '{n} and the older kids from the block are shooting cans behind the garages. "Two out of five, little one, and we stop calling you that."',
+  'Behind the laundromat, {n} holds out a slingshot and five stones. "The whole block says you can\'t hit two cans out of five. The whole block is watching."',
+  '{n} from the year above has a slingshot, an audience and a theory: you cannot hit two cans out of five. Time to test the theory.',
+];
+
+// How the bet ends, from the slingshot's grade (great 4-5 hits, ok 2-3, bad 0-1).
+function betEnd(c, grade, hits) {
+  const down = cansDown(hits);
+  return {
+    great: ok(`${down} The older kids go quiet. ${c.first} lost the bet in front of the whole block.`, { respect: 4, smarts: 2 }),
+    ok: meh(`${down} Bet won, barely. Nobody cheers, but nobody laughs either.`, { respect: 2, smarts: 1 }),
+    bad: bad(`${down} ${c.first} laughs first, then the whole block joins in.`, { respect: -3, smarts: -2 }),
+  }[grade];
 }
 
 // Sparring partners for the fight test room (new fight rules): how often they fake their tell (`feint`)
@@ -340,6 +397,17 @@ const EVENTS = [
       { label: 'Make fun of them', run: (p, c) => (chance(Math.min(0.95, Math.max(0.05, (p.smarts - 20) / 60)))
         ? ok(`One joke, and the whole yard was laughing at ${c.first} instead of you.`, { respect: 4 })
         : yardFight(c, { respect: -3 }, `The joke fell flat. Nobody laughed, and ${c.first} swung first.`)) },
+    ] },
+  { id: 'uncle', title: (p, c) => `Uncle ${c.u}`, scene: true, when: () => true, ctx: () => ({ u: pick(FIRST_M), why: pick(UNCLE_WHYS) }),
+    text: (p, c) => c.why.replace('{u}', c.u), hint: SLING_HINT,
+    choices: [{ label: 'Take the shot', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => uncleEnd(c, grade, hits) } }) }] },
+  { id: 'bet', title: 'The Bet', scene: true, when: () => true, ctx: () => ({ why: pick(BET_WHYS) }),
+    text: (p, c) => c.why.replace('{n}', c.first), hint: SLING_HINT,
+    choices: [
+      { label: 'Take the bet', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => betEnd(c, grade, hits) } }) },
+      { label: 'Walk away', run: (p, c) => (chance(Math.min(0.95, Math.max(0.05, (p.smarts - 20) / 60))) // a good excuse takes smarts
+        ? meh(`"Some of us have better things to do than shoot garbage." Even ${c.first} grins.`, { respect: -1 })
+        : bad(`"Chicken," says ${c.first}, and by Monday the whole block is clucking.`, { respect: -5 })) },
     ] },
   { id: 'ring', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
     ctx: () => ({ venue: pick(VOLKOV_VENUES), foe: pick(VOLKOV_FIGHTERS) }),

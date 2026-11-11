@@ -126,13 +126,14 @@ function ageUp() {
   nextEvent();
 }
 
-// The yearly challenge: one scene that fits the age, never the same one twice in a row when there is a choice.
+// The yearly challenge: first a minigame that fits the age (never the same one twice in a row when there is a
+// choice), then one of its stories, so every minigame comes up equally often however many stories it has.
 function queueChallenge() {
-  const fits = CHALLENGES.filter(c => P.age >= c.min && P.age <= c.max);
-  const pool = fits.filter(c => c.id !== P.lastChallenge), ch = pick(pool.length ? pool : fits);
-  if (!ch) return;
-  P.lastChallenge = ch.id;
-  const e = EVENTS.find(x => x.id === ch.id);
+  const fits = CHALLENGES.filter(c => P.age >= c.min && P.age <= c.max), games = [...new Set(fits.map(c => c.game))];
+  const fresh = games.filter(g => g !== P.lastGame), game = pick(fresh.length ? fresh : games);
+  if (!game) return;
+  P.lastGame = game;
+  const story = pick(fits.filter(c => c.game === game)).id, e = EVENTS.find(x => x.id === story);
   P.pending.unshift({ id: e.id, c: makeCtx(e) });
 }
 
@@ -161,7 +162,7 @@ function showEvent(e, c) {
   const choices = e.choices
     .map((ch, i) => `<button class="opt" data-choice="${i}">${esc(typeof ch.label === 'function' ? ch.label(P, c) : ch.label)}</button>`)
     .join('');
-  showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Age ${P.age} · Event</p><h2>${esc(titleOf(e, c))}</h2><p>${esc(e.text(P, c))}</p><div class="choices">${choices}</div></div>`);
+  showModal(`<div class="card" role="dialog" aria-modal="true"><p class="kicker">Age ${P.age} · Event</p><h2>${esc(titleOf(e, c))}</h2><p>${esc(e.text(P, c))}</p>${e.hint ? `<p class="tell">${esc(e.hint)}</p>` : ''}<div class="choices">${choices}</div></div>`);
 }
 
 function choose(i) {
@@ -171,7 +172,7 @@ function choose(i) {
 }
 
 // An outcome either resolves right away or starts a fight first.
-const play = (r, title) => (r.fight ? startFight(r, title) : r.sneak ? startSneak(r.sneak, title) : r.safe ? startSafe(r.safe, title) : r.memory ? startMemory(r.memory, title) : resolve(r, title));
+const play = (r, title) => (r.fight ? startFight(r, title) : r.sneak ? startSneak(r.sneak, title) : r.safe ? startSafe(r.safe, title) : r.memory ? startMemory(r.memory, title) : r.sling ? startSling(r.sling, title) : resolve(r, title));
 
 function resolve(r, title) {
   const fx = applyFx(r.fx);
@@ -891,6 +892,325 @@ function renderMemory() {
   if (ph === 'over') modal.querySelectorAll('.mc:not(.up)').forEach((el, k) => setTimeout(() => el.classList.add('up'), 250 + k * 80)); // show what you missed
 }
 
+// ---------- slingshot ----------
+// Five stones, five targets. Drag down anywhere and let go: the stone flies the opposite way, and the longer the pull,
+// the farther it goes. While you pull, a circle shows where the stone can land (it falls anywhere inside it): smarts
+// shrink the circle. The hand shakes harder the longer you hold the pull: strength keeps it calm for longer.
+let SL = null; // the slingshot round in progress (not saved)
+// pull: longest pull that counts; reach: how far the shortest and longest pull throw (canvas units).
+// From stat 0 to stat 100: spread = landing circle radius (smarts); shake = times the wobble (base 0.8 units of pull,
+// growing 3.5 a second) and calm = seconds before it starts to grow (both strength).
+const SLING = { stones: 5, pull: 120, reach: [40, 300], spread: [26, 6], shake: [1.6, 0.5], calm: [0.5, 1.2] };
+const slStat = (range, v) => range[0] + (range[1] - range[0]) * clamp(v) / 100;
+let slTest = { scene: Object.keys(SLING_SCENES)[0], str: 50, smarts: 50, open: false }; // the test room's picks (open: shown)
+// Strength on the slingshot's 0-100 scale, measured against the age: a child's strength runs 5-20 (older ages: not decided yet).
+const slStr = p => (p.age <= 12 ? clamp((p.str - 5) / 15 * 100) : p.str);
+const SL_W = 300, SL_H = 400, SL_O = { x: 150, y: 334 }; // canvas units; where the pouch rests
+const SL_KINDS = { can: { w: 22, h: 30 } };
+
+function startSling(job, title) {
+  const sc = SLING_SCENES[job.scene];
+  const str = job.str ?? slStr(P), smarts = job.smarts ?? P.smarts;
+  SL = { job, title, sc, kind: SL_KINDS[sc.kind], phase: 'aim', spread: slStat(SLING.spread, smarts),
+    shake: slStat(SLING.shake, str), calm: slStat(SLING.calm, str), left: SLING.stones, hits: 0, run: 0, fx: [], stone: null,
+    targets: sc.targets.map(t => ({ ...t, x: t.x + rnd(-8, 8) * t.s, down: null })), city: skyline(sc.wall.top) };
+  renderSling();
+}
+
+function startSlingTest() { startSling({ ...slTest, test: true }, 'Slingshot Test'); }
+
+// The city behind the fence: a row of rooftops with a few lit windows.
+function skyline(top) {
+  const roofs = [], lights = [];
+  for (let x = -4; x < SL_W;) {
+    const w = rnd(18, 42), h = rnd(14, 60);
+    roofs.push({ x, w, h });
+    for (let i = 0; i < 3; i++) if (chance(0.5)) lights.push({ x: x + rnd(3, w - 5), y: top - rnd(6, h - 4) });
+    x += w + rnd(0, 4);
+  }
+  return { roofs, lights };
+}
+
+function renderSling() {
+  const j = SL.job, over = SL.phase === 'over', n = SL.hits;
+  const grade = { great: 'Great', ok: 'Ok', bad: 'Bad' }[SL.result];
+  const title = over ? { great: 'Dead Eye', ok: 'Not Bad', bad: 'Way Off' }[SL.result] : 'Knock Them Down';
+  const tell = over ? `${n} of ${SLING.stones} down. Grade: ${grade}.`
+    : 'Drag down anywhere and let go. The circle shows where the stone can land. Hold it too long and your hand starts to shake.';
+  const row = (label, key, opts) => `<div class="chips"><span class="chip-l">${label}</span>${opts.map(([v, name]) =>
+    `<button class="chip${v === slTest[key] ? ' on' : ''}" data-sl="${key}:${v}">${esc(name)}</button>`).join('')}</div>`;
+  const picks = j.test && slTest.open ? row('Scene', 'scene', Object.entries(SLING_SCENES).map(([k, v]) => [k, v.name]))
+    + row('Strength', 'str', [[10, 'Weak'], [50, 'Average'], [90, 'Strong']])
+    + row('Smarts', 'smarts', [[10, 'Dim'], [50, 'Average'], [90, 'Sharp']]) : '';
+  const settings = `<button class="ghost" data-sl="settings">${slTest.open ? 'Hide settings' : 'Settings'}</button>`;
+  const controls = !over ? (j.test ? `${settings}<button class="ghost" data-sl="quit">Quit</button>` : '')
+    : j.end ? '<button class="primary" data-sl="done">Continue</button>' : `<button class="primary" data-sl="retry">Try again</button>${settings}<button class="ghost" data-sl="quit">Close</button>`;
+  showModal(`<div class="card sling ${over ? (SL.result === 'bad' ? 'bad' : 'good') : ''}" role="dialog" aria-modal="true">
+    <p class="kicker">${esc(SL.title)} · ${esc(SL.sc.name)}</p>
+    <h2>${title}</h2><p class="tell">${esc(tell)}</p>
+    <p class="sl-hud" id="sl-hud">${slHud()}</p>
+    <canvas id="sling" width="${SL_W}" height="${SL_H}" aria-label="Slingshot range: drag down and let go to shoot"></canvas>
+    ${picks}${controls ? `<div class="row sctl">${controls}</div>` : ''}</div>`);
+  modal.querySelector('[data-sl=retry], [data-sl=done]')?.focus();
+  const cv = $('#sling'), dpr = window.devicePixelRatio || 1, cs = getComputedStyle(modal), card = modal.firstElementChild;
+  const room = modal.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - (card.scrollHeight + card.offsetHeight - card.clientHeight - cv.offsetHeight);
+  if (room < cv.offsetHeight) cv.style.width = `${Math.max(200, Math.floor(room * SL_W / SL_H))}px`; // short screens: the whole card fits
+  cv.width = Math.round(cv.clientWidth * dpr) || SL_W;
+  cv.height = Math.round(cv.width * SL_H / SL_W);
+  Object.assign(SL, { cv, ctx: cv.getContext('2d'), k: cv.width / SL_W });
+  cv.addEventListener('pointerdown', slDown);
+  cv.addEventListener('pointermove', slMove);
+  cv.addEventListener('pointerup', slUp);
+  cv.addEventListener('pointercancel', () => { if (SL?.phase === 'pull') SL.phase = 'aim'; });
+  const run = ++SL.run;
+  const frame = now => {
+    if (!SL || SL.run !== run || modal.hidden) return;
+    if (SL.phase === 'fly' && now - SL.stone.t0 >= SL.stone.dur) slLand(now);
+    slDraw(now);
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+}
+
+const slHud = () => `<span class="stones">${'●'.repeat(SL.left)}${'○'.repeat(SLING.stones - SL.left)}</span><span>${plural(SL.hits, 'hit')}</span>`;
+
+function slPoint(e) {
+  const r = SL.cv.getBoundingClientRect();
+  return { x: (e.clientX - r.left) * SL_W / r.width, y: (e.clientY - r.top) * SL_H / r.height };
+}
+
+function slDown(e) {
+  if (!SL || SL.phase !== 'aim') return;
+  e.preventDefault();
+  SL.cv.setPointerCapture?.(e.pointerId);
+  Object.assign(SL, { phase: 'pull', from: slPoint(e), drag: { x: 0, y: 0 }, held: performance.now(),
+    noise: [0, 0, 0, 0].map(() => Math.random() * 6.3) });
+}
+
+function slMove(e) {
+  if (SL?.phase !== 'pull') return;
+  const p = slPoint(e);
+  SL.drag = { x: p.x - SL.from.x, y: p.y - SL.from.y };
+}
+
+function slUp(e) {
+  if (SL?.phase !== 'pull') return;
+  slMove(e);
+  const now = performance.now(), a = slAim(now);
+  if (!a) { SL.phase = 'aim'; return; } // let go without pulling back: no stone used
+  SL.left--;
+  const r = SL.spread * Math.sqrt(Math.random()), ang = Math.random() * Math.PI * 2; // anywhere inside the circle
+  SL.stone = { to: { x: a.at.x + r * Math.cos(ang), y: a.at.y + r * Math.sin(ang) }, t0: now, dur: 380 + 260 * a.p, hump: a.reach * 0.2 };
+  SL.phase = 'fly';
+  $('#sl-hud').innerHTML = slHud();
+}
+
+// The pull with the shaking hand on top, or null while it is too short to shoot. The angle stays within 55° of straight down.
+// at: the centre of the landing circle.
+function slAim(now) {
+  if (SL.drag.y < 6 || Math.hypot(SL.drag.x, SL.drag.y) < 14) return null;
+  const t = (now - SL.held) / 1000, n = SL.noise;
+  const amp = SL.shake * (0.8 + 3.5 * Math.max(0, t - SL.calm) ** 1.3);
+  const x = SL.drag.x + amp * (0.6 * Math.sin(8.2 * t + n[0]) + 0.4 * Math.sin(19.1 * t + n[1]));
+  const y = SL.drag.y + amp * (0.6 * Math.sin(7.1 * t + n[2]) + 0.4 * Math.sin(17.3 * t + n[3]));
+  const ang = clamp(Math.atan2(x, y), -0.96, 0.96), len = Math.min(Math.hypot(x, y), SLING.pull), p = len / SLING.pull;
+  const reach = SLING.reach[0] + p * (SLING.reach[1] - SLING.reach[0]), dir = { x: -Math.sin(ang), y: -Math.cos(ang) };
+  return { p, reach, dir, pull: { x: Math.sin(ang) * len, y: Math.cos(ang) * len }, at: { x: SL_O.x + dir.x * reach, y: SL_O.y + dir.y * reach } };
+}
+
+function slLand(now) {
+  const to = SL.stone.to;
+  SL.stone = null;
+  const hit = slTargetAt(to);
+  if (hit) {
+    hit.down = { t0: now, dir: to.x < hit.x ? 1 : -1 };
+    SL.hits++;
+  }
+  SL.fx.push({ x: to.x, y: to.y, t0: now, text: hit ? 'Clang!' : 'Miss', hit: !!hit });
+  $('#sl-hud').innerHTML = slHud();
+  if (SL.left) { SL.phase = 'aim'; return; }
+  SL.phase = 'wait';
+  const run = SL.run;
+  setTimeout(() => {
+    if (!SL || SL.run !== run) return;
+    Object.assign(SL, { phase: 'over', result: SL.hits >= 4 ? 'great' : SL.hits >= 2 ? 'ok' : 'bad', fx: [] });
+    renderSling();
+  }, 900);
+}
+
+// The standing target a stone landing here knocks down (the closest one first).
+function slTargetAt(to) {
+  const kd = SL.kind;
+  return SL.targets.filter(t => !t.down).sort((a, b) => b.y - a.y)
+    .find(t => Math.abs(to.x - t.x) <= kd.w * t.s / 2 + 3 && to.y <= t.y + 3 && to.y >= t.y - kd.h * t.s - 3);
+}
+
+function slCmd(cmd) {
+  if (cmd === 'done') { // a real challenge: hand the result back to the life
+    const { job, title, result, hits } = SL;
+    SL = null;
+    hideModal();
+    const r = job.end(result, hits);
+    return r ? resolve(r, title) : nextEvent();
+  }
+  if (cmd === 'quit') { SL = null; return hideModal(); }
+  if (cmd === 'retry') return startSlingTest();
+  if (cmd === 'settings') { // show or hide the test room's picks; the round goes on
+    if (SL.phase === 'wait') return;
+    slTest.open = !slTest.open;
+    return renderSling();
+  }
+  const [key, v] = cmd.split(':'); // a test room pick: scene, strength or smarts
+  if (key in slTest) { slTest[key] = key === 'scene' ? v : +v; startSlingTest(); }
+}
+
+function slDraw(now) {
+  const c = SL.ctx, sc = SL.sc, { top, bottom } = sc.wall;
+  c.setTransform(SL.k, 0, 0, SL.k, 0, 0);
+  let g = c.createLinearGradient(0, 0, 0, top);
+  g.addColorStop(0, sc.sky[0]);
+  g.addColorStop(1, sc.sky[1]);
+  c.fillStyle = g;
+  c.fillRect(0, 0, SL_W, top);
+  c.fillStyle = sc.city;
+  for (const r of SL.city.roofs) c.fillRect(r.x, top - r.h, r.w, r.h);
+  c.fillStyle = 'rgba(202, 162, 76, .55)';
+  for (const l of SL.city.lights) c.fillRect(l.x, l.y, 2, 3);
+  g = c.createLinearGradient(0, bottom, 0, SL_H);
+  g.addColorStop(0, sc.ground[0]);
+  g.addColorStop(1, sc.ground[1]);
+  c.fillStyle = g;
+  c.fillRect(0, bottom, SL_W, SL_H - bottom);
+  c.fillStyle = sc.wall.color; // the back fence, plank by plank
+  c.fillRect(0, top, SL_W, bottom - top);
+  c.fillStyle = 'rgba(0, 0, 0, .3)';
+  for (let x = 6; x < SL_W; x += 14) c.fillRect(x, top, 1, bottom - top);
+  c.fillStyle = 'rgba(255, 255, 255, .1)';
+  c.fillRect(0, top, SL_W, 2);
+  for (const t of [...SL.targets].sort((a, b) => a.y - b.y)) { slStand(c, t); slCan(c, t, now); } // far to near
+
+  SL.fx = SL.fx.filter(f => now - f.t0 < 800);
+  c.textAlign = 'center';
+  c.font = '800 16px "Big Shoulders Display", "Arial Narrow", sans-serif';
+  for (const f of SL.fx) {
+    const k = (now - f.t0) / 800;
+    c.globalAlpha = 1 - k;
+    if (!f.hit) { // a puff of dust where it fell
+      c.fillStyle = 'rgba(200, 190, 170, .6)';
+      c.beginPath();
+      c.arc(f.x, f.y, 3 + 9 * k, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.fillStyle = f.hit ? '#caa24c' : '#ece6d6';
+    c.fillText(f.text, f.x, f.y - 14 - 18 * k);
+    c.globalAlpha = 1;
+  }
+
+  if (SL.stone) { // in flight: a lob that shrinks as it goes away from you
+    const st = SL.stone, k = Math.min(1, (now - st.t0) / st.dur);
+    const x = SL_O.x + (st.to.x - SL_O.x) * k, y = SL_O.y + (st.to.y - SL_O.y) * k - st.hump * Math.sin(Math.PI * k);
+    slStone(c, x, y, 5.5 - 3.5 * k * clamp((SL_O.y - st.to.y) / 200, 0, 1));
+  }
+
+  const a = SL.phase === 'pull' ? slAim(now) : null;
+  if (a) { // where it can land, and three dots leaving the fork
+    c.fillStyle = 'rgba(236, 230, 214, .14)';
+    c.strokeStyle = 'rgba(236, 230, 214, .7)';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.arc(a.at.x, a.at.y, SL.spread, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
+    c.fillStyle = '#ece6d6';
+    for (let d = 14; d <= 34; d += 10) {
+      c.globalAlpha = 0.9 - d / 50;
+      c.beginPath();
+      c.arc(SL_O.x + a.dir.x * d, SL_O.y + a.dir.y * d, 2, 0, Math.PI * 2);
+      c.fill();
+    }
+    c.globalAlpha = 1;
+  }
+  const pouch = a ? { x: SL_O.x + a.pull.x * 0.42, y: SL_O.y + a.pull.y * 0.42 } : SL_O;
+  const armL = { x: 126, y: 318 }, armR = { x: 174, y: 318 };
+  c.lineCap = 'round';
+  c.strokeStyle = '#6b4a2b';
+  c.lineWidth = 10;
+  slLine(c, { x: 150, y: 410 }, { x: 150, y: 360 });
+  c.lineWidth = 7;
+  slLine(c, { x: 150, y: 362 }, armL);
+  slLine(c, { x: 150, y: 362 }, armR);
+  c.strokeStyle = '#b0603e'; // rubber bands
+  c.lineWidth = 3;
+  slLine(c, armL, pouch);
+  slLine(c, armR, pouch);
+  if (SL.phase === 'aim' || SL.phase === 'pull') {
+    c.fillStyle = '#3b2a1e';
+    c.beginPath();
+    c.ellipse(pouch.x, pouch.y + 2, 9, 5, 0, 0, Math.PI * 2);
+    c.fill();
+    slStone(c, pouch.x, pouch.y, 5.5);
+  }
+}
+
+function slLine(c, a, b) { c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke(); }
+
+function slStone(c, x, y, r) {
+  c.fillStyle = '#9a958a';
+  c.strokeStyle = '#3a372f';
+  c.lineWidth = 1;
+  c.beginPath();
+  c.arc(x, y, r, 0, Math.PI * 2);
+  c.fill();
+  c.stroke();
+}
+
+// What a target stands on, with a shadow on the ground under it.
+function slStand(c, t) {
+  const s = t.s;
+  let w = 0, h = 0;
+  if (t.on === 'crate') {
+    w = 36 * s; h = 30 * s;
+    c.fillStyle = '#6b4f2e';
+    c.fillRect(t.x - w / 2, t.y, w, h);
+    c.strokeStyle = '#3e2d19';
+    c.lineWidth = 1.5 * s;
+    c.strokeRect(t.x - w / 2, t.y, w, h);
+    slLine(c, { x: t.x - w / 2, y: t.y }, { x: t.x + w / 2, y: t.y + h });
+  } else if (t.on === 'post') {
+    w = 10 * s; h = 64 * s;
+    c.fillStyle = '#4f3a22';
+    c.fillRect(t.x - w / 2, t.y, w, h);
+  } else return;
+  c.fillStyle = 'rgba(0, 0, 0, .3)';
+  c.beginPath();
+  c.ellipse(t.x, t.y + h, w * 0.7, 3 * s, 0, 0, Math.PI * 2);
+  c.fill();
+}
+
+// A tin can; once hit it tumbles off and fades.
+function slCan(c, t, now) {
+  const s = t.s, w = SL.kind.w * s, h = SL.kind.h * s;
+  c.save();
+  if (t.down) {
+    const k = (now - t.down.t0) / 1000;
+    if (k > 1.1) return c.restore();
+    c.globalAlpha = 1 - clamp((k - 0.6) / 0.5, 0, 1);
+    c.translate(t.x + t.down.dir * 40 * s * k, t.y - h / 2 - 60 * s * k + 260 * s * k * k);
+    c.rotate(t.down.dir * k * 9);
+  } else c.translate(t.x, t.y - h / 2);
+  c.fillStyle = '#a9b0b2';
+  c.fillRect(-w / 2, -h / 2, w, h);
+  c.fillStyle = '#b8473a'; // the label
+  c.fillRect(-w / 2, -h / 6, w, h / 3);
+  c.fillStyle = 'rgba(255, 255, 255, .35)';
+  c.fillRect(-w / 2 + w * 0.18, -h / 2, w * 0.12, h);
+  c.fillStyle = '#d6dbdc'; // the lid
+  c.beginPath();
+  c.ellipse(0, -h / 2, w / 2, w * 0.18, 0, 0, Math.PI * 2);
+  c.fill();
+  c.restore();
+}
+
 // ---------- screens ----------
 
 const app = $('#app');
@@ -919,8 +1239,8 @@ const SHEETS = {
       ['Born', `${P.born} in ${P.district}`], ...(P.fam ? [['Family', `${P.fam.name} · ${FAM_RANKS[P.fam.rank]}`]] : []),
     ];
     return ['Profile', facts(rows) +
-      `<div class="list"><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.28</p>`];
+      `<div class="list"><button class="item seek" data-do="slingTest"><span class="nm">Slingshot Test Room</span><span class="ds">Try the new slingshot minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
+      `<p class="ver">Mafiozo 0.33</p>`];
   },
 };
 
@@ -1013,6 +1333,7 @@ const DO = {
   sneakTest() { closeSheet(); startSneak({ room: SNEAK_TEST }); },
   safeTest() { closeSheet(); startSafeTest(); },
   memoryTest() { closeSheet(); startMemoryTest(); },
+  slingTest() { closeSheet(); startSlingTest(); },
   fightTest() { closeSheet(); fightTestMenu(); },
   flee,
   askRestart() {
@@ -1020,6 +1341,7 @@ const DO = {
   },
   restart() {
     P = null;
+    F = S = V = M = SL = null; // a minigame left running stops with the life
     try { localStorage.removeItem(SAVE_KEY); } catch (e) { /* nothing saved */ }
     closeSheet();
     hideModal();
@@ -1042,6 +1364,7 @@ document.addEventListener('click', e => {
   else if (d.sf) safeCmd(d.sf);
   else if (d.card) memFlip(+d.card);
   else if (d.mm) memCmd(d.mm);
+  else if (d.sl) slCmd(d.sl);
   else if (d.ft) ftCmd(d.ft);
   else if ('choice' in d) choose(+d.choice);
   else if ('close' in d) closeSheet();
