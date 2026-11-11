@@ -43,8 +43,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   more the longer you hold, strength calms it (x1.6 to x0.5, calm 0.5 s to 1.2 s); scenes in SLING_SCENES, tunables in SLING):
   `startSling({ scene, str?, smarts?, end? }, title)`, or a choice returns `{ sling: { scene, end(grade, hits) } }`;
   str/smarts default to the life's, and for ages 5-12 strength is measured against a child's 5-20 (slStr; older ages not decided).
-  Used by the 'uncle' story; test room in Profile (a Settings button shows the Scene, Weak/Average/Strong and Dim/Average/Sharp picks).
-  Agreed plan: 1 feel, 2 stats, 3 uncle done; next the kids' bet and the windows (house scene) stories.
+  Used by the 'uncle' and 'bet' stories; test room in Profile (a Settings button shows the Scene, Weak/Average/Strong and Dim/Average/Sharp picks).
+  Agreed plan: 1 feel, 2 stats, 3 uncle, 4a kids' bet done; next 4b the windows story (house scene, first in the test room).
   Target: an average character hits about 3 of 5 (owner's playtest: 2.4 on a small test-room scene). TODO later (owner): a short slingshot tutorial.
   Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; used by the collect test, test room in Profile.
   Collect night: P.collect holds the notebook (3 DEBTORS); events debtor/sweep/handover; skimming or lying for a debtor can be found out.
@@ -92,7 +92,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    back off soul+3 respect-4; teacher respect-8; joke succeeds (smarts) respect+4 or fails respect-3 then fight;
    fight great/ok/bad/fled set str/respect/health exactly); 'uncle' (slingshot, cans; random uncle name and one of
    UNCLE_WHYS; great smarts+4 str+2, ok smarts+2 str+1, bad smarts-1 str-1; the uncle gives no slingshot and no story
-   is a prerequisite for another). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
+   is a prerequisite for another); 'bet' (slingshot, cans; older kids bet you can't hit 2 of 5, pride only, leader c.first,
+   one of BET_WHYS; great respect+4 smarts+2, ok respect+2 smarts+1, bad respect-3 smarts-2). No stat grows automatically (owner: not until it is explicitly agreed): the yearly
    smarts/strength growth, the prison respect and the graduation at 18 were removed; agreed: HP +0-5 a year.
    All random yearly events from the first prototype were removed (owner: only agreed content), and with them the
    yearly random roll (queueEvent); KID_MEMORIES feeds the 'Born' block.

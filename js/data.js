@@ -93,6 +93,7 @@ const SLING_SCENES = {
 const CHALLENGES = [
   { id: 'yard', game: 'fight', min: 5, max: 12 },
   { id: 'uncle', game: 'sling', min: 5, max: 12 },
+  { id: 'bet', game: 'sling', min: 5, max: 12 },
 ];
 
 // Why the schoolyard fight starts ({n} is the other kid).
@@ -121,13 +122,33 @@ const UNCLE_WHYS = [
   'Uncle {u} is babysitting today, which means a slingshot, five empty cans and one rule: your mother never hears about this.',
 ];
 
+const SLING_HINT = 'Drag down and let go. The circle shows where the stone can land.';
+const cansDown = hits => (hits ? `${hits} of 5 cans down.` : 'Not a single can down.');
+
 // The uncle's verdict, from the slingshot's grade (great 4-5 hits, ok 2-3, bad 0-1).
 function uncleEnd(c, grade, hits) {
-  const down = hits ? `${hits} of 5 cans down.` : 'Not a single can down.';
+  const down = cansDown(hits);
   return {
     great: ok(`${down} Uncle ${c.u} whistles. "That's not luck. That's an eye."`, { smarts: 4, str: 2 }),
     ok: meh(`${down} "Not bad," says Uncle ${c.u}. "Again next Sunday."`, { smarts: 2, str: 1 }),
     bad: bad(`${down} Uncle ${c.u} collects the cans in silence.`, { smarts: -1, str: -1 }),
+  }[grade];
+}
+
+// Why the older kids bet against you ({n} is their leader). Only pride is at stake, no money.
+const BET_WHYS = [
+  '{n} and the older kids from the block are shooting cans behind the garages. "Two out of five, little one, and we stop calling you that."',
+  'Behind the laundromat, {n} holds out a slingshot and five stones. "The whole block says you can\'t hit two cans out of five. The whole block is watching."',
+  '{n} from the year above has a slingshot, an audience and a theory: you cannot hit two cans out of five. Time to test the theory.',
+];
+
+// How the bet ends, from the slingshot's grade (great 4-5 hits, ok 2-3, bad 0-1).
+function betEnd(c, grade, hits) {
+  const down = cansDown(hits);
+  return {
+    great: ok(`${down} The older kids go quiet. ${c.first} lost the bet in front of the whole block.`, { respect: 4, smarts: 2 }),
+    ok: meh(`${down} Bet won, barely. Nobody cheers, but nobody laughs either.`, { respect: 2, smarts: 1 }),
+    bad: bad(`${down} ${c.first} laughs first, then the whole block joins in.`, { respect: -3, smarts: -2 }),
   }[grade];
 }
 
@@ -378,8 +399,11 @@ const EVENTS = [
         : yardFight(c, { respect: -3 }, `The joke fell flat. Nobody laughed, and ${c.first} swung first.`)) },
     ] },
   { id: 'uncle', title: (p, c) => `Uncle ${c.u}`, scene: true, when: () => true, ctx: () => ({ u: pick(FIRST_M), why: pick(UNCLE_WHYS) }),
-    text: (p, c) => c.why.replace('{u}', c.u), hint: 'Drag down and let go. The circle shows where the stone can land.',
+    text: (p, c) => c.why.replace('{u}', c.u), hint: SLING_HINT,
     choices: [{ label: 'Take the shot', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => uncleEnd(c, grade, hits) } }) }] },
+  { id: 'bet', title: 'The Bet', scene: true, when: () => true, ctx: () => ({ why: pick(BET_WHYS) }),
+    text: (p, c) => c.why.replace('{n}', c.first), hint: SLING_HINT,
+    choices: [{ label: 'Take the bet', run: (p, c) => ({ sling: { scene: 'cans', end: (grade, hits) => betEnd(c, grade, hits) } }) }] },
   { id: 'ring', title: (p, c) => `The ${c.fam} Test`, scene: true, when: p => !p.fam,
     ctx: () => ({ venue: pick(VOLKOV_VENUES), foe: pick(VOLKOV_FIGHTERS) }),
     text: (p, c) => `${c.venue.replace('{clan}', clan(c.fam))} A ${c.fam} lieutenant looks you over. "You want in? Here, you fight. Tonight it is ${c.foe.name}." ${c.foe.note}`,
