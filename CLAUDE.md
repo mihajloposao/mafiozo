@@ -38,9 +38,12 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   each test also picks a random variant (venue, opponent, place). Use clan(fam) for the plural (the Morettis, the Delacroix).
   Sneaking minigame (turn-based grid, rooms in data.js): `startSneak({ room, entry, label, end })`; used by the sneak test, test room in Profile.
   Safe minigame (memory keypad): `startSafe(job, title)`; used by the safe test (DELACROIX_JOBS: method scope/closet/bribe), test room in Profile.
-  Slingshot minigame (5 stones, 5 targets; drag down anywhere, longer pull = farther, only the start of the path shows,
-  the hand shakes more the longer you hold; scenes in SLING_SCENES, tunables in SLING): `startSling({ scene, end? }, title)`;
-  only a test room in Profile so far (step 1 of the agreed plan: feel, then strength/smarts, then the uncle story, then the rest).
+  Slingshot minigame (5 stones, 5 targets; drag down anywhere, longer pull = farther; while pulling a circle shows where
+  the stone can land and it falls anywhere inside; smarts shrink the circle (radius 26 at 0 to 6 at 100); the hand shakes
+  more the longer you hold, strength calms it (x1.6 to x0.5, calm 0.5 s to 1.2 s); scenes in SLING_SCENES, tunables in SLING):
+  `startSling({ scene, str?, smarts?, end? }, title)` (str/smarts default to the life's). Only a test room in Profile so far,
+  with Weak/Average/Strong and Dim/Average/Sharp picks (agreed plan: 1 feel and 2 stats done; next the uncle story, then the rest).
+  Target: an average character hits about 3 of 5. TODO later (owner): a short slingshot tutorial.
   Memory minigame (pairs, DEBTORS): `startMemory(job, title)`; cards start hidden, matched pairs are taken; used by the collect test, test room in Profile.
   Collect night: P.collect holds the notebook (3 DEBTORS); events debtor/sweep/handover; skimming or lying for a debtor can be found out.
   Anyone noticing you = alarm: the guard chases 2 steps per turn and must tackle you, gives up if you stay hidden;

@@ -893,22 +893,28 @@ function renderMemory() {
 
 // ---------- slingshot ----------
 // Five stones, five targets. Drag down anywhere and let go: the stone flies the opposite way, and the longer the pull,
-// the farther it goes. Only the start of the path shows, and the hand shakes harder the longer you hold the pull.
+// the farther it goes. While you pull, a circle shows where the stone can land (it falls anywhere inside it): smarts
+// shrink the circle. The hand shakes harder the longer you hold the pull: strength keeps it calm for longer.
 let SL = null; // the slingshot round in progress (not saved)
-// pull: longest pull that counts; reach: how far the shortest and longest pull throw; guide: share of the path you see;
-// shake: wobble at once, how fast it grows, seconds before it starts to grow (canvas units of pull).
-const SLING = { stones: 5, pull: 120, reach: [40, 300], guide: 0.3, shake: [0.8, 3.5, 0.8] };
+// pull: longest pull that counts; reach: how far the shortest and longest pull throw (canvas units).
+// From stat 0 to stat 100: spread = landing circle radius (smarts); shake = times the wobble (base 0.8 units of pull,
+// growing 3.5 a second) and calm = seconds before it starts to grow (both strength).
+const SLING = { stones: 5, pull: 120, reach: [40, 300], spread: [26, 6], shake: [1.6, 0.5], calm: [0.5, 1.2] };
+const slStat = (range, v) => range[0] + (range[1] - range[0]) * clamp(v) / 100;
+let slTest = { scene: Object.keys(SLING_SCENES)[0], str: 50, smarts: 50 }; // the test room's picks
 const SL_W = 300, SL_H = 400, SL_O = { x: 150, y: 334 }; // canvas units; where the pouch rests
 const SL_KINDS = { can: { w: 22, h: 30 } };
 
 function startSling(job, title) {
   const sc = SLING_SCENES[job.scene];
-  SL = { job, title, sc, kind: SL_KINDS[sc.kind], phase: 'aim', left: SLING.stones, hits: 0, run: 0, fx: [], stone: null,
+  const str = job.str ?? P.str, smarts = job.smarts ?? P.smarts;
+  SL = { job, title, sc, kind: SL_KINDS[sc.kind], phase: 'aim', spread: slStat(SLING.spread, smarts),
+    shake: slStat(SLING.shake, str), calm: slStat(SLING.calm, str), left: SLING.stones, hits: 0, run: 0, fx: [], stone: null,
     targets: sc.targets.map(t => ({ ...t, x: t.x + rnd(-8, 8) * t.s, down: null })), city: skyline(sc.wall.top) };
   renderSling();
 }
 
-function startSlingTest(scene = Object.keys(SLING_SCENES)[0]) { startSling({ scene, test: true }, 'Slingshot Test'); }
+function startSlingTest() { startSling({ ...slTest, test: true }, 'Slingshot Test'); }
 
 // The city behind the fence: a row of rooftops with a few lit windows.
 function skyline(top) {
@@ -927,9 +933,12 @@ function renderSling() {
   const grade = { great: 'Great', ok: 'Ok', bad: 'Bad' }[SL.result];
   const title = over ? { great: 'Dead Eye', ok: 'Not Bad', bad: 'Way Off' }[SL.result] : 'Knock Them Down';
   const tell = over ? `${n} of ${SLING.stones} down. Grade: ${grade}.`
-    : 'Drag down anywhere and let go. A longer pull throws farther. Hold it too long and your hand starts to shake.';
-  const scenes = j.test ? `<div class="chips">${Object.entries(SLING_SCENES).map(([k, v]) =>
-    `<button class="chip${k === j.scene ? ' on' : ''}" data-sl="scene:${k}">${esc(v.name)}</button>`).join('')}</div>` : '';
+    : 'Drag down anywhere and let go. The circle shows where the stone can land. Hold it too long and your hand starts to shake.';
+  const row = (label, key, opts) => `<div class="chips"><span class="chip-l">${label}</span>${opts.map(([v, name]) =>
+    `<button class="chip${v === slTest[key] ? ' on' : ''}" data-sl="${key}:${v}">${esc(name)}</button>`).join('')}</div>`;
+  const scenes = j.test ? row('Scene', 'scene', Object.entries(SLING_SCENES).map(([k, v]) => [k, v.name]))
+    + row('Strength', 'str', [[10, 'Weak'], [50, 'Average'], [90, 'Strong']])
+    + row('Smarts', 'smarts', [[10, 'Dim'], [50, 'Average'], [90, 'Sharp']]) : '';
   const controls = !over ? (j.test ? '<button class="ghost" data-sl="quit">Quit</button>' : '')
     : j.end ? '<button class="primary" data-sl="done">Continue</button>' : '<button class="primary" data-sl="retry">Try again</button><button class="ghost" data-sl="quit">Close</button>';
   showModal(`<div class="card sling ${over ? (SL.result === 'bad' ? 'bad' : 'good') : ''}" role="dialog" aria-modal="true">
@@ -939,7 +948,9 @@ function renderSling() {
     <canvas id="sling" width="${SL_W}" height="${SL_H}" aria-label="Slingshot range: drag down and let go to shoot"></canvas>
     ${controls ? `<div class="row sctl">${controls}</div>` : ''}</div>`);
   modal.querySelector('[data-sl=retry], [data-sl=done]')?.focus();
-  const cv = $('#sling'), dpr = window.devicePixelRatio || 1;
+  const cv = $('#sling'), dpr = window.devicePixelRatio || 1, cs = getComputedStyle(modal), card = modal.firstElementChild;
+  const room = modal.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom) - (card.scrollHeight + card.offsetHeight - card.clientHeight - cv.offsetHeight);
+  if (room < cv.offsetHeight) cv.style.width = `${Math.max(200, Math.floor(room * SL_W / SL_H))}px`; // short screens: the whole card fits
   cv.width = Math.round(cv.clientWidth * dpr) || SL_W;
   cv.height = Math.round(cv.width * SL_H / SL_W);
   Object.assign(SL, { cv, ctx: cv.getContext('2d'), k: cv.width / SL_W });
@@ -984,28 +995,29 @@ function slUp(e) {
   const now = performance.now(), a = slAim(now);
   if (!a) { SL.phase = 'aim'; return; } // let go without pulling back: no stone used
   SL.left--;
-  SL.stone = { to: { x: SL_O.x + a.dir.x * a.reach, y: SL_O.y + a.dir.y * a.reach }, t0: now, dur: 380 + 260 * a.p, hump: a.reach * 0.2 };
+  const r = SL.spread * Math.sqrt(Math.random()), ang = Math.random() * Math.PI * 2; // anywhere inside the circle
+  SL.stone = { to: { x: a.at.x + r * Math.cos(ang), y: a.at.y + r * Math.sin(ang) }, t0: now, dur: 380 + 260 * a.p, hump: a.reach * 0.2 };
   SL.phase = 'fly';
   $('#sl-hud').innerHTML = slHud();
 }
 
 // The pull with the shaking hand on top, or null while it is too short to shoot. The angle stays within 55° of straight down.
+// at: the centre of the landing circle.
 function slAim(now) {
   if (SL.drag.y < 6 || Math.hypot(SL.drag.x, SL.drag.y) < 14) return null;
-  const t = (now - SL.held) / 1000, [base, grow, calm] = SLING.shake, n = SL.noise;
-  const amp = base + grow * Math.max(0, t - calm) ** 1.3;
+  const t = (now - SL.held) / 1000, n = SL.noise;
+  const amp = SL.shake * (0.8 + 3.5 * Math.max(0, t - SL.calm) ** 1.3);
   const x = SL.drag.x + amp * (0.6 * Math.sin(8.2 * t + n[0]) + 0.4 * Math.sin(19.1 * t + n[1]));
   const y = SL.drag.y + amp * (0.6 * Math.sin(7.1 * t + n[2]) + 0.4 * Math.sin(17.3 * t + n[3]));
   const ang = clamp(Math.atan2(x, y), -0.96, 0.96), len = Math.min(Math.hypot(x, y), SLING.pull), p = len / SLING.pull;
-  return { p, pull: { x: Math.sin(ang) * len, y: Math.cos(ang) * len }, dir: { x: -Math.sin(ang), y: -Math.cos(ang) },
-    reach: SLING.reach[0] + p * (SLING.reach[1] - SLING.reach[0]) };
+  const reach = SLING.reach[0] + p * (SLING.reach[1] - SLING.reach[0]), dir = { x: -Math.sin(ang), y: -Math.cos(ang) };
+  return { p, reach, dir, pull: { x: Math.sin(ang) * len, y: Math.cos(ang) * len }, at: { x: SL_O.x + dir.x * reach, y: SL_O.y + dir.y * reach } };
 }
 
 function slLand(now) {
-  const to = SL.stone.to, kd = SL.kind;
+  const to = SL.stone.to;
   SL.stone = null;
-  const hit = SL.targets.filter(t => !t.down).sort((a, b) => b.y - a.y) // the closest one is hit first
-    .find(t => Math.abs(to.x - t.x) <= kd.w * t.s / 2 + 3 && to.y <= t.y + 3 && to.y >= t.y - kd.h * t.s - 3);
+  const hit = slTargetAt(to);
   if (hit) {
     hit.down = { t0: now, dir: to.x < hit.x ? 1 : -1 };
     SL.hits++;
@@ -1022,6 +1034,13 @@ function slLand(now) {
   }, 900);
 }
 
+// The standing target a stone landing here knocks down (the closest one first).
+function slTargetAt(to) {
+  const kd = SL.kind;
+  return SL.targets.filter(t => !t.down).sort((a, b) => b.y - a.y)
+    .find(t => Math.abs(to.x - t.x) <= kd.w * t.s / 2 + 3 && to.y <= t.y + 3 && to.y >= t.y - kd.h * t.s - 3);
+}
+
 function slCmd(cmd) {
   if (cmd === 'done') { // a real challenge: hand the result back to the life
     const { job, title, result, hits } = SL;
@@ -1031,8 +1050,9 @@ function slCmd(cmd) {
     return r ? resolve(r, title) : nextEvent();
   }
   if (cmd === 'quit') { SL = null; return hideModal(); }
-  if (cmd === 'retry') return startSlingTest(SL.job.scene);
-  if (cmd.startsWith('scene:')) startSlingTest(cmd.slice(6));
+  if (cmd === 'retry') return startSlingTest();
+  const [key, v] = cmd.split(':'); // a test room pick: scene, strength or smarts
+  if (key in slTest) { slTest[key] = key === 'scene' ? v : +v; startSlingTest(); }
 }
 
 function slDraw(now) {
@@ -1084,11 +1104,17 @@ function slDraw(now) {
   }
 
   const a = SL.phase === 'pull' ? slAim(now) : null;
-  if (a) { // the start of the path
-    const len = a.reach * SLING.guide;
+  if (a) { // where it can land, and three dots leaving the fork
+    c.fillStyle = 'rgba(236, 230, 214, .14)';
+    c.strokeStyle = 'rgba(236, 230, 214, .7)';
+    c.lineWidth = 1.5;
+    c.beginPath();
+    c.arc(a.at.x, a.at.y, SL.spread, 0, Math.PI * 2);
+    c.fill();
+    c.stroke();
     c.fillStyle = '#ece6d6';
-    for (let d = 14; d <= len; d += 10) {
-      c.globalAlpha = 0.15 + 0.75 * (1 - d / len);
+    for (let d = 14; d <= 34; d += 10) {
+      c.globalAlpha = 0.9 - d / 50;
       c.beginPath();
       c.arc(SL_O.x + a.dir.x * d, SL_O.y + a.dir.y * d, 2, 0, Math.PI * 2);
       c.fill();
@@ -1205,7 +1231,7 @@ const SHEETS = {
     ];
     return ['Profile', facts(rows) +
       `<div class="list"><button class="item seek" data-do="slingTest"><span class="nm">Slingshot Test Room</span><span class="ds">Try the new slingshot minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="fightTest"><span class="nm">Fight Test Room</span><span class="ds">Try the new fight rules. Nothing here affects your life.</span></button><button class="item seek" data-do="memoryTest"><span class="nm">Memory Test Room</span><span class="ds">Try the new collecting minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="safeTest"><span class="nm">Safe Test Room</span><span class="ds">Try the new safe-cracking minigame. Nothing here affects your life.</span></button><button class="item seek" data-do="sneakTest"><span class="nm">Sneak Test Room</span><span class="ds">Try the new sneaking minigame. Nothing here affects your life.</span></button></div><div class="list" id="restart"><button class="item danger" data-do="askRestart"><span class="nm">Start a New Life</span><span class="ds">This life and its save end for good.</span></button></div>` +
-      `<p class="ver">Mafiozo 0.29</p>`];
+      `<p class="ver">Mafiozo 0.30</p>`];
   },
 };
 
