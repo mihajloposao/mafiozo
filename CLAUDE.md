@@ -53,6 +53,24 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    `file_path` tools/artifact.html, `files` {"css/style.css","js/data.js","js/game.js"} mapped to themselves.
 4. Commit and push. GitHub Pages (when enabled) serves https://mihajloposao.github.io/mafiozo/
 
+## Vision (owner's decisions, planned top-down; details of each concept are still to be designed together)
+- Feeling: power first (rise and dominance), story second (every life a different anecdote). A crime-world simulation with many directions.
+- No winning. Every direction has a top position, but reaching it is not victory and it can be lost (betrayal, coup, con).
+  A life is scored at its end: separate records plus a final title. Measured for sure: money, reputation/fear, highest
+  position reached. Territory and people are open until their concepts exist.
+- Directions: inside someone else's organization, solo, own organization (all three certain). Running through all three,
+  as real concepts to design later (not "just pay"): from the shadows (bought officials) and the double game (secret loyalty, rats).
+  Specialist (a name in one craft that unlocks or eases things): later. The law is a constant force, not a direction.
+  No "retire/exit" storyline. Legacy (a child inherits, universal across directions): undecided.
+- Driver: the player's own ambition plus opportunities the world keeps offering. No imposed personal motive. What you
+  build is never safe and does not grow linearly: the player must react and adapt (no generic decay for standing still).
+- Stages: status opens new things and has priority, but age also counts in the math and in what happens.
+- A life ends by death, violent or natural. How the year of natural death is set, what affects it and whether it can be
+  slowed or sped up is a separate concept to design.
+- Year rhythm: unlimited moves, each with its own natural price or risk (a fight costs HP, a robbery raises heat, going
+  behind the boss's back hurts the relationship), heat as the common thread; status unlocks new kinds of moves.
+  Limits must stay logical (e.g. the same family cannot be sought twice in one year).
+
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
