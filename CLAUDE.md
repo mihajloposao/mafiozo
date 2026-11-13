@@ -91,6 +91,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   player (separate reputations per group: maybe later).
   Heat cools slowly by itself over time (too slowly for waiting alone to be the answer) and faster through the
   player's own moves. What the law does at high heat belongs to the law concept.
+  Soul follows the player's deeds and the world sees it (people and offers react to it), but it never limits the
+  player's choices. Both extremes carry their own advantages and drawbacks, so neither is the better one. Like the
+  other stats it can count toward success, trigger short situations and unlock actions (details later).
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
