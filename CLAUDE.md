@@ -81,6 +81,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   changes difficulty, how others see you and which offers arrive, and it can trigger situations of its own.
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
+- Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
+  the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
