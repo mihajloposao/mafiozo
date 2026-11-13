@@ -70,6 +70,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Year rhythm: unlimited moves, each with its own natural price or risk (a fight costs HP, a robbery raises heat, going
   behind the boss's back hurts the relationship), heat as the common thread; status unlocks new kinds of moves.
   Limits must stay logical (e.g. the same family cannot be sought twice in one year).
+  Five groups of moves, all agreed: work on yourself (gym, treatment, lying low), solo crime (pickpocketing, break-ins,
+  robbery), people (meet, ask a favor, bribe, threaten), organization (seek a family, family jobs, later an own crew),
+  money (buy, invest, launder). Which concrete moves exist and what each costs is still to be designed.
 - Opportunities: both ways. The menu serves the player's own initiative, and the world sometimes comes with an offer
   as a consequence of what the player did (never a random roll). Offers through acquaintances: a later layer.
 - A living world: everything in it changes on its own in the background, not only the families but every concept we
