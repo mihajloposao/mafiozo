@@ -75,6 +75,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - A living world: everything in it changes on its own in the background, not only the families but every concept we
   add (strength, bosses, wars), and the player's deeds push it further. It complicates the system a lot, so it gets its
   own careful plan before anything is built.
+- Becoming a criminal is gradual: the early years mostly build stats and respect (with small transgressions), later
+  age, status and stats together unlock different things.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
