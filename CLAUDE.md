@@ -85,6 +85,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Movement: stats go up and down with outcomes, and age counts too: the body has an arc (strength and HP rise in youth
   and fall in old age, the mind does not); the numbers are still to be designed. No separate "rusts when unused" rule:
   that should come out of the living world by itself.
+  Visibility: every stat is shown as an exact number for now. To reconsider later: own stats exact (HP, strength,
+  smarts), but respect, heat and soul only approximate, since they depend on what others think and know.
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
