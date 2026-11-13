@@ -82,6 +82,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   The six stay for now, no new ones. Smarts is street cleverness, not school: it covers mind, talk (persuading, lying)
   and keeping cool. With people, the outcome comes from smarts (skill), respect (do they listen) and soul (who finds
   you convincing) together. 'Brains' is being considered as a new name for Smarts (not decided, do not rename yet).
+  Movement: stats go up and down with outcomes, and age counts too: the body has an arc (strength and HP rise in youth
+  and fall in old age, the mind does not); the numbers are still to be designed. No separate "rusts when unused" rule:
+  that should come out of the living world by itself.
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
