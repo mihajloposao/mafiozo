@@ -87,6 +87,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   that should come out of the living world by itself.
   Visibility: every stat is shown as an exact number for now. To reconsider later: own stats exact (HP, strength,
   smarts), but respect, heat and soul only approximate, since they depend on what others think and know.
+  Respect is one general number for the whole city, and every living person also holds a personal opinion of the
+  player (separate reputations per group: maybe later).
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
