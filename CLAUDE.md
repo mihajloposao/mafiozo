@@ -70,6 +70,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - Year rhythm: unlimited moves, each with its own natural price or risk (a fight costs HP, a robbery raises heat, going
   behind the boss's back hurts the relationship), heat as the common thread; status unlocks new kinds of moves.
   Limits must stay logical (e.g. the same family cannot be sought twice in one year).
+- Opportunities: both ways. The menu serves the player's own initiative, and the world sometimes comes with an offer
+  as a consequence of what the player did (never a random roll). Offers through acquaintances: a later layer.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
