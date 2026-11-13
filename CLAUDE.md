@@ -76,6 +76,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   money (buy, invest, launder). Which concrete moves exist and what each costs is still to be designed.
   Outcome: small moves (pickpocketing, gym) resolve instantly from stats and some luck; big jobs (a robbery, a family
   test, a showdown) are minigames.
+- The law works in steps by heat: low heat does nothing; medium brings pressure (riskier jobs, people avoid you, the
+  police watch you); high brings arrest, then a fine or prison depending on what you did and who stands with you.
+  Prison is back as an agreed concept (years pass, life goes on inside and after); life inside gets its own plan.
 - Opportunities: both ways. The menu serves the player's own initiative, and the world sometimes comes with an offer
   as a consequence of what the player did (never a random roll). Offers through acquaintances: a later layer.
 - A living world: everything in it changes on its own in the background, not only the families but every concept we
