@@ -77,6 +77,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   own careful plan before anything is built.
 - Becoming a criminal is gradual: the early years mostly build stats and respect (with small transgressions), later
   age, status and stats together unlock different things.
+- Stats (what each of the six does is still a separate plan): few hard locks, only where logical; otherwise a stat
+  changes difficulty, how others see you and which offers arrive, and it can trigger situations of its own.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
