@@ -53,6 +53,65 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    `file_path` tools/artifact.html, `files` {"css/style.css","js/data.js","js/game.js"} mapped to themselves.
 4. Commit and push. GitHub Pages (when enabled) serves https://mihajloposao.github.io/mafiozo/
 
+## Vision (owner's decisions, planned top-down; details of each concept are still to be designed together)
+- Feeling: power first (rise and dominance), story second (every life a different anecdote). A crime-world simulation with many directions.
+- No winning. Every direction has a top position, but reaching it is not victory and it can be lost (betrayal, coup, con).
+  A life is scored at its end: separate records plus a final title. Measured for sure: money, reputation/fear, highest
+  position reached. Territory and people are open until their concepts exist.
+- Directions: inside someone else's organization, solo, own organization (all three certain). Running through all three,
+  as real concepts to design later (not "just pay"): from the shadows (bought officials) and the double game (secret loyalty, rats).
+  Specialist (a name in one craft that unlocks or eases things): later. The law is a constant force, not a direction.
+  No "retire/exit" storyline. Legacy (a child inherits, universal across directions): undecided.
+- Driver: the player's own ambition plus opportunities the world keeps offering. No imposed personal motive. What you
+  build is never safe and does not grow linearly: the player must react and adapt (no generic decay for standing still).
+- Stages: status opens new things and has priority, but age also counts in the math and in what happens.
+- A life ends by death, violent or natural. How the year of natural death is set, what affects it and whether it can be
+  slowed or sped up is a separate concept to design.
+- Year rhythm: unlimited in variety (gym and pickpocketing and a job in the same year), NOT unlimited repeats of the
+  same move (no pickpocketing a hundred times a year; the repeat rule is still to be set). Each move has its own natural price or risk (a fight costs HP, a robbery raises heat, going
+  behind the boss's back hurts the relationship), heat as the common thread; status unlocks new kinds of moves.
+  Limits must stay logical (e.g. the same family cannot be sought twice in one year).
+  Five groups of moves, all agreed: work on yourself (gym, treatment, lying low), solo crime (pickpocketing, break-ins,
+  robbery), people (meet, ask a favor, bribe, threaten), organization (seek a family, family jobs, later an own crew),
+  money (buy, invest, launder). Which concrete moves exist and what each costs is still to be designed.
+  Outcome: small moves (pickpocketing, gym) resolve instantly from stats and some luck; big jobs (a robbery, a family
+  test, a showdown) are minigames.
+- Opportunities: both ways. The menu serves the player's own initiative, and the world sometimes comes with an offer
+  as a consequence of what the player did (never a random roll). Offers through acquaintances: a later layer.
+- A living world: everything in it changes on its own in the background, not only the families but every concept we
+  add (strength, bosses, wars), and the player's deeds push it further. It complicates the system a lot, so it gets its
+  own careful plan before anything is built.
+- Becoming a criminal is gradual: the early years mostly build stats and respect (with small transgressions), later
+  age, status and stats together unlock different things.
+- Stats (what each of the six does is still a separate plan): few hard locks, only where logical; otherwise a stat
+  changes difficulty, how others see you and which offers arrive, and it can trigger situations of its own.
+  The six stay for now, no new ones. Smarts is street cleverness, not school: it covers mind, talk (persuading, lying)
+  and keeping cool. With people, the outcome comes from smarts (skill), respect (do they listen) and soul (who finds
+  you convincing) together. 'Brains' is being considered as a new name for Smarts (not decided, do not rename yet).
+  Movement: stats go up and down with outcomes, and age counts too: the body has an arc (strength and HP rise in youth
+  and fall in old age, the mind does not); the numbers are still to be designed. No separate "rusts when unused" rule:
+  that should come out of the living world by itself.
+  Visibility: every stat is shown as an exact number for now. To reconsider later: own stats exact (HP, strength,
+  smarts), but respect, heat and soul only approximate, since they depend on what others think and know.
+  Respect is one general number for the whole city, and every living person also holds a personal opinion of the
+  player (separate reputations per group: maybe later).
+  Heat cools slowly by itself over time (too slowly for waiting alone to be the answer) and faster through the
+  player's own moves. What the law does at high heat belongs to the law concept.
+  Soul follows the player's deeds and the world sees it (people and offers react to it), but it never limits the
+  player's choices. Both extremes carry their own advantages and drawbacks, so neither is the better one. Like the
+  other stats it can count toward success, trigger short situations and unlock actions (details later).
+  HP comes back slowly by itself and faster through treatment, which has a price. Serious wounds leave a mark: they
+  lower the HP cap for good. Keep that simple: only outcomes explicitly flagged as a serious wound do it, by a fixed
+  amount (a fist fight never does).
+  Training: the player can work on a stat on purpose through moves that have a price (the Activities button), but the
+  higher the stat, the less training gives; the top is reached only through real deeds.
+  Birth: every character starts with different, random stats (today only HP is random). Origin shaping the start
+  (parents, birthplace) may come later, together with legacy.
+- People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
+  ages, rises, dies). The rest are nameless backdrop.
+- Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
+  the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
+
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
