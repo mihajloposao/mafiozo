@@ -99,6 +99,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   amount (a fist fight never does).
   Training: the player can work on a stat on purpose through moves that have a price (the Activities button), but the
   higher the stat, the less training gives; the top is reached only through real deeds.
+  Birth: every character starts with different, random stats (today only HP is random). Origin shaping the start
+  (parents, birthplace) may come later, together with legacy.
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
