@@ -68,7 +68,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 - A life ends by death, violent or natural. How the year of natural death is set, what affects it and whether it can be
   slowed or sped up is a separate concept to design.
 - Year rhythm: unlimited in variety (gym and pickpocketing and a job in the same year), NOT unlimited repeats of the
-  same move (no pickpocketing a hundred times a year; the repeat rule is still to be set). Each move has its own natural price or risk (a fight costs HP, a robbery raises heat, going
+  same move: every move has its own yearly count set by its logic, and most small moves are once a year. Each move has its own natural price or risk (a fight costs HP, a robbery raises heat, going
   behind the boss's back hurts the relationship), heat as the common thread; status unlocks new kinds of moves.
   Limits must stay logical (e.g. the same family cannot be sought twice in one year).
   Five groups of moves, all agreed: work on yourself (gym, treatment, lying low), solo crime (pickpocketing, break-ins,
