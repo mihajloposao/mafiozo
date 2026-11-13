@@ -72,6 +72,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Limits must stay logical (e.g. the same family cannot be sought twice in one year).
 - Opportunities: both ways. The menu serves the player's own initiative, and the world sometimes comes with an offer
   as a consequence of what the player did (never a random roll). Offers through acquaintances: a later layer.
+- A living world: everything in it changes on its own in the background, not only the families but every concept we
+  add (strength, bosses, wars), and the player's deeds push it further. It complicates the system a lot, so it gets its
+  own careful plan before anything is built.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
