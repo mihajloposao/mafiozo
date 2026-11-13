@@ -94,6 +94,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Soul follows the player's deeds and the world sees it (people and offers react to it), but it never limits the
   player's choices. Both extremes carry their own advantages and drawbacks, so neither is the better one. Like the
   other stats it can count toward success, trigger short situations and unlock actions (details later).
+  HP comes back slowly by itself and faster through treatment, which has a price. Serious wounds leave a mark: they
+  lower the HP cap for good. Keep that simple: only outcomes explicitly flagged as a serious wound do it, by a fixed
+  amount (a fist fight never does).
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
