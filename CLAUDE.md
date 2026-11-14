@@ -122,6 +122,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Districts may exist, but they are developed together with the families concept (how families come to be).
   A map shows visually what is what and who is where; it could be landscape. For now the map is only an overview:
   the game is still played through the menus (tapping a place to get its moves is not agreed).
+  Same layout in every life (the places are always there), but a different state each life: who holds what, who the
+  boss is, how strong everyone is.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
