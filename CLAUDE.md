@@ -120,7 +120,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   It is made of places, each carrying a concept (hypothetical first set: doctor, gym, prison, school, and businesses
   the player can rob, extort or own to launder money); a new concept later simply gets its place on the map.
   Districts may exist, but they are developed together with the families concept (how families come to be).
-  A map shows visually what is what and who is where; it could be landscape.
+  A map shows visually what is what and who is where; it could be landscape. For now the map is only an overview:
+  the game is still played through the menus (tapping a place to get its moves is not agreed).
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
