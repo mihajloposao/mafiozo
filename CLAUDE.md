@@ -124,6 +124,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   the game is still played through the menus (tapping a place to get its moves is not agreed).
   Same layout in every life (the places are always there), but a different state each life: who holds what, who the
   boss is, how strong everyone is.
+  Every place carries: its type and moves, an owner (a living person who remembers what the player did), a protector
+  (whom it pays; a family's territory is simply the places paying it) and a value (how much a robbery, a racket or
+  ownership brings). A changing state (new owner, ruin, fire, closing) comes later with the living world.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
