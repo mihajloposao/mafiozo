@@ -116,7 +116,11 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   ages, rises, dies). The rest are nameless backdrop.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
   the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
-- The city (districts, whether the place of a move matters, territory) is its own concept, to be discussed separately.
+- The city (its own concept, still being planned): as realistic a picture of a city as possible, built to be extended.
+  It is made of places, each carrying a concept (hypothetical first set: doctor, gym, prison, school, and businesses
+  the player can rob, extort or own to launder money); a new concept later simply gets its place on the map.
+  Districts may exist, but they are developed together with the families concept (how families come to be).
+  A map shows visually what is what and who is where; it could be landscape.
 
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
