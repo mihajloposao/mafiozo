@@ -150,6 +150,7 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   and respect, soul down, the victim's opinion down, may end in a fight), challenge to a fight (the existing fight
   minigame; the outcome moves respect and opinion). Probably also: ask for help with studying (the smarter that
   pupil is, the more smarts the player gains). Help, threaten, ask a favor: not for now.
+  The class has six to eight pupils in the first version, each a living person.
   School (first version): a place with actions that can change stats, and a group of living people (the pupils)
   whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
