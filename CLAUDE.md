@@ -135,6 +135,10 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Every place carries: its type and moves, an owner (a living person who remembers what the player did), a protector
   (whom it pays; a family's territory is simply the places paying it) and a value (how much a robbery, a racket or
   ownership brings). A changing state (new owner, ruin, fire, closing) comes later with the living world.
+  First set of places, only those the owner is sure about: school, doctor's office, basic businesses, bank (the place
+  exists first; stealing, buying and owning are developed later), prison. Gym: maybe not in the first version. Family
+  seats: not listed until the families concept is worked out in detail. Police station: proposed, not confirmed. The
+  set stays open for more places and concepts.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
   introduced, the place of birth comes in with it, and may then shape opportunities and what happens.
 
