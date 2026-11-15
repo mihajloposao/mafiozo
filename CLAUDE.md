@@ -144,7 +144,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Two kinds of actions, decided separately: place actions belong to the place itself (school: study, PE, skip class,
   cheat), person actions belong to one living person (befriend, take a lunch, challenge to a fight).
   School place actions agreed for the first version: study (smarts up), PE (strength up), skip class (respect up,
-  smarts down, the teacher may catch you). Cheating: not for now.
+  smarts down, the teacher may catch you), theft from the locker room (money up, soul down, respect down if caught).
+  Cheating: not for now.
   School (first version): a place with actions that can change stats, and a group of living people (the pupils)
   whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
