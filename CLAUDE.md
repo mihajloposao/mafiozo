@@ -146,6 +146,10 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   School place actions agreed for the first version: study (smarts up), PE (strength up), skip class (respect up,
   smarts down, the teacher may catch you), theft from the locker room (money up, soul down, respect down if caught).
   Cheating: not for now.
+  Person actions toward a pupil agreed for the first version: befriend (opinion up), take a lunch (a little money
+  and respect, soul down, the victim's opinion down, may end in a fight), challenge to a fight (the existing fight
+  minigame; the outcome moves respect and opinion). Probably also: ask for help with studying (the smarter that
+  pupil is, the more smarts the player gains). Help, threaten, ask a favor: not for now.
   School (first version): a place with actions that can change stats, and a group of living people (the pupils)
   whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
