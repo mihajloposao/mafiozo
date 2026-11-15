@@ -119,8 +119,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   First version of a person, simple but built to be extended and maintained: a name, a role in the city (e.g. pupil;
   the full list of roles is defined once all concepts exist), one number for the opinion of the player that
   accumulates everything that happened, and an archetype (shared among characters, covers what traits would do; the
-  list is still to be designed). No memory of single deeds in the first version. Whether people get stats like the
-  player's is open.
+  list is still to be designed). No memory of single deeds in the first version. Living people have stats (not yet
+  decided that they are the same six as the player's); how those stats are initialized and how they change is still
+  to be defined.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
   the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
 - The city (its own concept, still being planned): as realistic a picture of a city as possible, built to be extended.
