@@ -128,6 +128,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   criminal record is a separate one, and later concepts can get theirs. Each time a new entry is made, the institution
   looks at the file and decides what kind of punishment applies. This is separate from failing itself: every action
   or minigame defines its own effect on stats in case of failure.
+  An entry records what the offence was, the year, and its weight (lighter or heavier), so the file reads as a list
+  and old entries can later count for less than fresh ones.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
   the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
 - The city (its own concept, still being planned): as realistic a picture of a city as possible, built to be extended.
