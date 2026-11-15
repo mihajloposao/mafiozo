@@ -160,6 +160,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   Elementary school lasts to about 14 or 15; after it the player may choose to enroll in high school (optional).
   High school is not easy to get into: it asks for smarts, maybe money, or no serious offences so far. In return it
   brings opportunities: more smarts, connections, and criminal activities of its own. Details still to be designed.
+  School punishments, chosen from the school's file on each new entry: warning (first lighter offences, nothing but
+  the entry), reprimand (first heavier offence or many lighter ones: respect among pupils goes up, high school gets
+  harder to reach), expulsion (too many heavier offences: school ends early, high school is closed).
   School (first version): a place with actions that can change stats, and a group of living people (the pupils)
   whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
