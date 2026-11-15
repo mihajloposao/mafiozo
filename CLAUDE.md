@@ -141,6 +141,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   exists first; stealing, buying and owning are developed later), prison. Gym: maybe not in the first version. Family
   seats: not listed until the families concept is worked out in detail. Police station: proposed, not confirmed. The
   set stays open for more places and concepts.
+  Two kinds of actions, decided separately: place actions belong to the place itself (school: study, PE, skip class,
+  cheat), person actions belong to one living person (befriend, take a lunch, challenge to a fight).
   School (first version): a place with actions that can change stats, and a group of living people (the pupils)
   whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
