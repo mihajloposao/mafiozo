@@ -114,6 +114,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   (parents, birthplace) may come later, together with legacy.
 - People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
   ages, rises, dies). The rest are nameless backdrop.
+  People are not designed as a separate catalog: every concept we build must contain at least one living person,
+  and a more complex concept several.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
   the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
 - The city (its own concept, still being planned): as realistic a picture of a city as possible, built to be extended.
