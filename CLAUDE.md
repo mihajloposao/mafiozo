@@ -124,6 +124,10 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   list is still to be designed). No memory of single deeds in the first version. Living people have stats (not yet
   decided that they are the same six as the player's); how those stats are initialized and how they change is still
   to be defined.
+- Dossiers (a reusable concept): an institution keeps its own file on the player. Every school attended has one, the
+  criminal record is a separate one, and later concepts can get theirs. Each time a new entry is made, the institution
+  looks at the file and decides what kind of punishment applies. This is separate from failing itself: every action
+  or minigame defines its own effect on stats in case of failure.
 - Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
   the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
 - The city (its own concept, still being planned): as realistic a picture of a city as possible, built to be extended.
