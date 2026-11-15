@@ -54,6 +54,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
 4. Commit and push. GitHub Pages (when enabled) serves https://mihajloposao.github.io/mafiozo/
 
 ## Vision (owner's decisions, planned top-down; details of each concept are still to be designed together)
+- Scope: everything defined here is defined for the FIRST version of the game. Any concept can be worked out in more
+  detail in later versions, so keep each first version simple and extensible.
 - Feeling: power first (rise and dominance), story second (every life a different anecdote). A crime-world simulation with many directions.
 - No winning. Every direction has a top position, but reaching it is not victory and it can be lost (betrayal, coup, con).
   A life is scored at its end: separate records plus a final title. Measured for sure: money, reputation/fear, highest
@@ -139,6 +141,8 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   exists first; stealing, buying and owning are developed later), prison. Gym: maybe not in the first version. Family
   seats: not listed until the families concept is worked out in detail. Police station: proposed, not confirmed. The
   set stays open for more places and concepts.
+  School (first version): a place with actions that can change stats, and a group of living people (the pupils)
+  whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
   introduced, the place of birth comes in with it, and may then shape opportunities and what happens.
 
