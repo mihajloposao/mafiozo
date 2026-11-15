@@ -165,6 +165,9 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
   harder to reach), expulsion (too many heavier offences: school ends early, high school is closed).
   After school the pupils stay: for now the game just keeps them and their opinion of the player, without a role.
   The main goal is that they hold a role later in life, given to them as the concepts they can appear in get built.
+  Doctor's office: one office in the first version with one action, treatment (pay, HP comes back), and who the
+  doctor is matters little. Later goal: two offices to choose from, where whether a doctor reports you depends on
+  the doctor's traits and opinion of the player. Build the first one so the second is easy to add.
   School (first version): a place with actions that can change stats, and a group of living people (the pupils)
   whose relations with the player can come to mean something during the game.
   The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
