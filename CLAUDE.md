@@ -53,6 +53,110 @@ no exploratory reads beyond what a change needs, no subagents, and reply in shor
    `file_path` tools/artifact.html, `files` {"css/style.css","js/data.js","js/game.js"} mapped to themselves.
 4. Commit and push. GitHub Pages (when enabled) serves https://mihajloposao.github.io/mafiozo/
 
+## Vision (owner's decisions, planned top-down; details of each concept are still to be designed together)
+- Scope: everything defined here is defined for the FIRST version of the game. Any concept can be worked out in more
+  detail in later versions, so keep each first version simple and extensible.
+- Feeling: power first (rise and dominance), story second (every life a different anecdote). A crime-world simulation with many directions.
+- No winning. Every direction has a top position, but reaching it is not victory and it can be lost (betrayal, coup, con).
+  A life is scored at its end: separate records plus a final title. Measured for sure: money, reputation/fear, highest
+  position reached. Territory and people are open until their concepts exist.
+- Directions: inside someone else's organization, solo, own organization (all three certain). Running through all three,
+  as real concepts to design later (not "just pay"): from the shadows (bought officials) and the double game (secret loyalty, rats).
+  Specialist (a name in one craft that unlocks or eases things): later. The law is a constant force, not a direction.
+  No "retire/exit" storyline. Legacy (a child inherits, universal across directions): undecided.
+- Driver: the player's own ambition plus opportunities the world keeps offering. No imposed personal motive. What you
+  build is never safe and does not grow linearly: the player must react and adapt (no generic decay for standing still).
+- Stages: status opens new things and has priority, but age also counts in the math and in what happens.
+- A life ends by death, violent or natural. How the year of natural death is set, what affects it and whether it can be
+  slowed or sped up is a separate concept to design.
+- Year rhythm: unlimited in variety (gym and pickpocketing and a job in the same year), NOT unlimited repeats of the
+  same move: every move has its own yearly count set by its logic, and most small moves are once a year. Each move has its own natural price or risk (a fight costs HP, a robbery raises heat, going
+  behind the boss's back hurts the relationship), heat as the common thread; status unlocks new kinds of moves.
+  Limits must stay logical (e.g. the same family cannot be sought twice in one year).
+  Five groups of moves, all agreed: work on yourself (gym, treatment, lying low), solo crime (pickpocketing, break-ins,
+  robbery), people (meet, ask a favor, bribe, threaten), organization (seek a family, family jobs, later an own crew),
+  money (buy, invest, launder). Which concrete moves exist and what each costs is still to be designed.
+  Outcome: small moves (pickpocketing, gym) resolve instantly from stats and some luck; big jobs (a robbery, a family
+  test, a showdown) are minigames.
+  What the player sees before a move is decided per move, not by one rule: a simple move shows just its price (the
+  gym), while a big job (robbing a bank) gets a detailed planning stage of its own.
+- The law works in steps by heat: low heat does nothing; medium brings pressure (riskier jobs, people avoid you, the
+  police watch you); high brings arrest, then a fine or prison depending on what you did and who stands with you.
+  Prison is back as an agreed concept (years pass, life goes on inside and after); life inside gets its own plan.
+- Opportunities: both ways. The menu serves the player's own initiative, and the world sometimes comes with an offer
+  as a consequence of what the player did (never a random roll). Offers through acquaintances: a later layer.
+- A living world: everything in it changes on its own in the background, not only the families but every concept we
+  add (strength, bosses, wars), and the player's deeds push it further. It complicates the system a lot, so it gets its
+  own careful plan before anything is built.
+- Becoming a criminal is gradual: the early years mostly build stats and respect (with small transgressions), later
+  age, status and stats together unlock different things.
+- Stats (what each of the six does is still a separate plan): few hard locks, only where logical; otherwise a stat
+  changes difficulty, how others see you and which offers arrive, and it can trigger situations of its own.
+  The six stay for now, no new ones. Smarts is street cleverness, not school: it covers mind, talk (persuading, lying)
+  and keeping cool. With people, the outcome comes from smarts (skill), respect (do they listen) and soul (who finds
+  you convincing) together. 'Brains' is being considered as a new name for Smarts (not decided, do not rename yet).
+  Movement: stats go up and down with outcomes, and age counts too: the body has an arc (strength and HP rise in youth
+  and fall in old age, the mind does not); the numbers are still to be designed. No separate "rusts when unused" rule:
+  that should come out of the living world by itself.
+  Visibility: every stat is shown as an exact number for now. To reconsider later: own stats exact (HP, strength,
+  smarts), but respect, heat and soul only approximate, since they depend on what others think and know.
+  Respect is one general number for the whole city, and every living person also holds a personal opinion of the
+  player (separate reputations per group: maybe later).
+  Heat cools slowly by itself over time (too slowly for waiting alone to be the answer) and faster through the
+  player's own moves. What the law does at high heat belongs to the law concept.
+  Soul follows the player's deeds and the world sees it (people and offers react to it), but it never limits the
+  player's choices. Both extremes carry their own advantages and drawbacks, so neither is the better one. Like the
+  other stats it can count toward success, trigger short situations and unlock actions (details later).
+  HP comes back slowly by itself and faster through treatment, which has a price. Serious wounds leave a mark: they
+  lower the HP cap for good. Keep that simple: only outcomes explicitly flagged as a serious wound do it, by a fixed
+  amount (a fist fight never does).
+  Training: the player can work on a stat on purpose through moves that have a price (the Activities button), but the
+  higher the stat, the less training gives; the top is reached only through real deeds.
+  Birth: every character starts with different, random stats (today only HP is random). Origin shaping the start
+  (parents, birthplace) may come later, together with legacy.
+- People: everyone important to the city and to our character is alive (a name, traits, memory of what the player did;
+  ages, rises, dies). The rest are nameless backdrop.
+  People are not designed as a separate catalog: every concept we build must contain at least one living person,
+  and a more complex concept several.
+  First version of a person, simple but built to be extended and maintained: a name, a role in the city (e.g. pupil;
+  the full list of roles is defined once all concepts exist), one number for the opinion of the player that
+  accumulates everything that happened, and an archetype (shared among characters, covers what traits would do; the
+  list is still to be designed). No memory of single deeds in the first version. Living people have stats (not yet
+  decided that they are the same six as the player's); how those stats are initialized and how they change is still
+  to be defined.
+- Harshness: realistic. The higher you stand, the deeper the fall (cheap mistakes at the bottom, everything at stake at
+  the top), and a single bad decision can still ruin or kill you at any time. The risk is NOT shown beforehand.
+- The city (its own concept, still being planned): as realistic a picture of a city as possible, built to be extended.
+  It is made of places, each carrying a concept (hypothetical first set: doctor, gym, prison, school, and businesses
+  the player can rob, extort or own to launder money); a new concept later simply gets its place on the map.
+  Districts may exist, but they are developed together with the families concept (how families come to be).
+  A map shows visually what is what and who is where; it could be landscape. For now the map is only an overview:
+  the game is still played through the menus (tapping a place to get its moves is not agreed).
+  Same layout in every life (the places are always there), but a different state each life: who holds what, who the
+  boss is, how strong everyone is.
+  Every place carries: its type and moves, an owner (a living person who remembers what the player did), a protector
+  (whom it pays; a family's territory is simply the places paying it) and a value (how much a robbery, a racket or
+  ownership brings). A changing state (new owner, ruin, fire, closing) comes later with the living world.
+  First set of places, only those the owner is sure about: school, doctor's office, basic businesses, bank (the place
+  exists first; stealing, buying and owning are developed later), prison. Gym: maybe not in the first version. Family
+  seats: not listed until the families concept is worked out in detail. Police station: proposed, not confirmed. The
+  set stays open for more places and concepts.
+  Two kinds of actions, decided separately: place actions belong to the place itself (school: study, PE, skip class,
+  cheat), person actions belong to one living person (befriend, take a lunch, challenge to a fight).
+  School place actions agreed for the first version: study (smarts up), PE (strength up), skip class (respect up,
+  smarts down, the teacher may catch you), theft from the locker room (money up, soul down, respect down if caught).
+  Cheating: not for now.
+  Person actions toward a pupil agreed for the first version: befriend (opinion up), take a lunch (a little money
+  and respect, soul down, the victim's opinion down, may end in a fight), challenge to a fight (the existing fight
+  minigame; the outcome moves respect and opinion). Probably also: ask for help with studying (the smarter that
+  pupil is, the more smarts the player gains). Help, threaten, ask a favor: not for now.
+  The class has six to eight pupils in the first version, each a living person.
+  Elementary school lasts to about 14 or 15; after it the player may choose to enroll in high school (optional).
+  School (first version): a place with actions that can change stats, and a group of living people (the pupils)
+  whose relations with the player can come to mean something during the game.
+  The character has no place of its own in the city at first (the whole city is equally near). When buying a home is
+  introduced, the place of birth comes in with it, and may then shape opportunities and what happens.
+
 ## Roadmap
 1. Phase 1 (prototype): life loop, stats, death at 0 HP, save (its other concepts were removed, see Conventions).
 2. Phase 2: the climb. Nothing is automatic or mandatory; staying a solo criminal is a valid life. Build one segment at a time:
